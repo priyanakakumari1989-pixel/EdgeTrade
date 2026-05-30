@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeTrade — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0A0A0F; --bg2:#0F0F18; --bg3:#13131E; --bg4:#17172A;
+  --gold:#C9A84C; --gold-dim:rgba(201,168,76,0.10); --gold-glow:rgba(201,168,76,0.22);
+  --white:#F5F0E8; --muted:#6B7280;
+  --border:rgba(201,168,76,0.10); --border2:rgba(255,255,255,0.06);
+  --green:#4CAF7D; --green-dim:rgba(76,175,125,0.10);
+  --red:#E05252; --red-dim:rgba(224,82,82,0.10);
+  --blue:#2A6496; --blue-dim:rgba(42,100,150,0.12);
+  --sidebar:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--white);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* LOADING */
+#load{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.load-logo{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;letter-spacing:3px;}
+.load-logo span{color:var(--gold);}
+.load-sub{font-size:11px;color:var(--muted);letter-spacing:3px;}
+.load-bar{width:180px;height:2px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;background:var(--gold);animation:lf 1.5s ease forwards;}
+@keyframes lf{from{width:0;}to{width:100%;}}
+
+/* PAGES */
+.page{display:none;}.page.active{display:flex;min-height:100vh;}
+#page-login{align-items:center;justify-content:center;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 22px;font-size:14px;z-index:8000;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:rgba(76,175,125,0.4);color:var(--green);}
+.toast.error{border-color:rgba(224,82,82,0.4);color:var(--red);}
+
+/* ═══ LOGIN ═══ */
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:48px 44px;width:400px;max-width:95vw;position:relative;overflow:hidden;}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.login-logo-txt{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;letter-spacing:2px;}
+.login-logo-txt span{color:var(--gold);}
+.admin-badge{background:var(--red-dim);border:1px solid rgba(224,82,82,0.3);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--red);letter-spacing:1px;font-weight:600;}
+.login-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:500;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.field label{font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.field input{background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.field input:focus{border-color:rgba(201,168,76,0.4);}
+.field input::placeholder{color:rgba(107,114,128,0.5);}
+.field-pass{position:relative;}
+.field-pass input{padding-right:40px;}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;transition:color 0.2s;}
+.eye-btn:hover{color:var(--gold);}
+.btn-login{width:100%;padding:13px;border-radius:8px;background:var(--gold);color:#0A0A0F;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;letter-spacing:0.5px;}
+.btn-login:hover{filter:brightness(1.1);}
+.btn-login:disabled{opacity:0.6;cursor:not-allowed;}
+.err-msg{display:none;background:var(--red-dim);border:1px solid rgba(224,82,82,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;}
+.back-link{display:block;text-align:center;margin-top:16px;font-size:13px;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.back-link:hover{color:var(--gold);}
+
+/* ═══ ADMIN APP ═══ */
+.admin-sidebar{
+  width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);
+  position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:50;
+}
+.sidebar-logo{padding:22px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sidebar-logo-text{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;letter-spacing:2px;}
+.sidebar-logo-text span{color:var(--gold);}
+.admin-label{background:var(--red-dim);border:1px solid rgba(224,82,82,0.3);border-radius:4px;padding:2px 6px;font-size:9px;color:var(--red);letter-spacing:1px;font-weight:700;}
+.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
+.nav-sec{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 8px 5px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all 0.2s;color:var(--muted);font-size:14px;border:1px solid transparent;background:none;width:100%;font-family:'Outfit',sans-serif;text-align:left;}
+.nav-item:hover{background:var(--gold-dim);color:var(--white);}
+.nav-item.active{background:var(--gold-dim);border-color:var(--border);color:var(--gold);font-weight:500;}
+.nav-icon{font-size:16px;flex-shrink:0;}
+.sidebar-bottom{padding:14px 12px;border-top:1px solid var(--border);}
+.admin-user{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;}
+.admin-av{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--red),#8B1A1A);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.logout-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;width:100%;margin-top:8px;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+.admin-main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.admin-topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(10,10,15,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);}
+.topbar-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.refresh-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;}
+.refresh-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+.admin-content{flex:1;padding:24px 28px;}
+.admin-section{display:none;}.admin-section.active{display:block;}
+
+/* ═══ DASHBOARD ═══ */
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.metric-card:hover{border-color:rgba(201,168,76,0.2);}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity 0.3s;}
+.metric-card:hover::before{opacity:1;}
+.metric-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.metric-val{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;line-height:1;margin-bottom:6px;}
+.metric-sub{font-size:11px;color:var(--muted);}
+.mv-gold{color:var(--gold);}
+.mv-green{color:var(--green);}
+.mv-red{color:var(--red);}
+.mv-blue{color:#00D2FF;}
+
+.dashboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.dash-card-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* Mini bar chart */
+.mini-bars{display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:8px;}
+.mini-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.mini-bar{width:100%;border-radius:3px 3px 0 0;min-height:3px;transition:height 0.8s ease;}
+.mb-green{background:linear-gradient(180deg,var(--green),rgba(76,175,125,0.3));}
+.mb-red{background:linear-gradient(180deg,var(--red),rgba(224,82,82,0.3));}
+.mb-lbl{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+/* Donut chart simulation */
+.donut-wrap{display:flex;align-items:center;gap:20px;}
+.donut{width:80px;height:80px;border-radius:50%;background:conic-gradient(var(--green) var(--p,0%), var(--red) var(--p,0%));flex-shrink:0;}
+.donut-labels{display:flex;flex-direction:column;gap:8px;}
+.donut-lbl{display:flex;align-items:center;gap:8px;font-size:13px;}
+.dl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* Activity list */
+.activity-list{display:flex;flex-direction:column;gap:8px;}
+.activity-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:9px;background:var(--bg3);border:1px solid var(--border2);}
+.act-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.act-info{flex:1;}
+.act-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+.act-time{font-size:11px;color:var(--muted);}
+.act-badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;}
+
+/* ═══ USERS TABLE ═══ */
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.table-search{background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;width:260px;}
+.table-search:focus{border-color:rgba(201,168,76,0.4);}
+.table-search::placeholder{color:var(--muted);}
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.table{width:100%;border-collapse:collapse;}
+.table th{padding:13px 16px;text-align:left;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg3);font-weight:500;}
+.table td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border2);}
+.table tr:last-child td{border-bottom:none;}
+.table tr:hover td{background:rgba(201,168,76,0.03);}
+.user-av-sm{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--gold),#8B6914);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0A0A0F;flex-shrink:0;}
+.user-cell{display:flex;align-items:center;gap:10px;}
+.user-cell-info .user-name{font-size:13px;font-weight:500;}
+.user-cell-info .user-email{font-size:11px;color:var(--muted);}
+.country-flag{font-size:11px;color:var(--muted);}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px;}
+.badge{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;}
+.badge-active{background:var(--green-dim);color:var(--green);}
+.badge-new{background:var(--gold-dim);color:var(--gold);}
+.badge-inactive{background:rgba(107,114,128,0.1);color:var(--muted);}
+.btn-sm{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;transition:all 0.2s;}
+.btn-sm:hover{border-color:var(--gold);color:var(--gold);}
+.empty-table{text-align:center;padding:48px;color:var(--muted);font-size:14px;}
+
+/* ═══ TICKETS ═══ */
+.tickets-grid{display:flex;flex-direction:column;gap:12px;}
+.ticket-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color 0.2s;}
+.ticket-card:hover{border-color:rgba(201,168,76,0.2);}
+.ticket-card.open{border-left:3px solid var(--red);}
+.ticket-card.in_progress{border-left:3px solid var(--gold);}
+.ticket-card.resolved{border-left:3px solid var(--green);}
+.ticket-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+.ticket-subject{font-size:15px;font-weight:500;}
+.ticket-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.ticket-status{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.ts-open{background:var(--red-dim);color:var(--red);}
+.ts-progress{background:var(--gold-dim);color:var(--gold);}
+.ts-resolved{background:var(--green-dim);color:var(--green);}
+.ticket-user{font-size:12px;color:var(--muted);}
+.ticket-time{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.ticket-msg{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border2);}
+.ticket-reply-section{display:none;margin-top:10px;}
+.ticket-reply-section.open{display:block;}
+.ticket-reply-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;resize:none;min-height:80px;margin-bottom:10px;transition:border-color 0.2s;}
+.ticket-reply-input:focus{border-color:rgba(201,168,76,0.4);}
+.ticket-reply-input::placeholder{color:rgba(107,114,128,0.4);}
+.ticket-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-reply{padding:8px 16px;border-radius:8px;background:var(--gold);color:#0A0A0F;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;}
+.btn-reply:hover{filter:brightness(1.1);}
+.btn-resolve{padding:8px 16px;border-radius:8px;background:var(--green-dim);border:1px solid rgba(76,175,125,0.3);color:var(--green);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;}
+.btn-resolve:hover{background:rgba(76,175,125,0.2);}
+.btn-open-reply{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;}
+.btn-open-reply:hover{border-color:var(--gold);color:var(--gold);}
+.admin-reply-box{background:var(--gold-dim);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:12px 14px;margin-top:10px;font-size:13px;line-height:1.6;}
+.admin-reply-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-weight:600;}
+
+/* ═══ SETTINGS ═══ */
+.settings-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:16px;}
+.settings-title{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--gold);margin-bottom:18px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border2);}
+.settings-row:last-child{border-bottom:none;}
+.settings-lbl{font-size:14px;font-weight:500;}
+.settings-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.settings-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);}
+
+/* Page header */
+.page-hdr{margin-bottom:22px;}
+.page-hdr-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:500;margin-bottom:4px;}
+.page-hdr-sub{font-size:13px;color:var(--muted);}
+
+/* Stat badges */
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;}
+.filter-btn.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;gap:8px;margin-top:14px;justify-content:center;}
+.page-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;transition:all 0.2s;}
+.page-btn:hover,.page-btn.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+
+/* Progress ring */
+.ring-wrap{position:relative;width:72px;height:72px;}
+.ring-svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:rgba(255,255,255,0.06);stroke-width:6;}
+.ring-fg{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dasharray 1s ease;}
+.ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;}
+
+@media(max-width:1024px){
+  .admin-sidebar{display:none;}
+  .admin-main{margin-left:0;}
+  .metrics-grid{grid-template-columns:1fr 1fr;}
+  .dashboard-grid{grid-template-columns:1fr;}
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.15);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="load">
+  <div class="load-logo">EDGE<span>TRADE</span></div>
+  <div class="load-sub">ADMIN PANEL</div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div class="page active" id="page-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="28" height="28" viewBox="0 0 38 38" fill="none">
+        <rect width="38" height="38" rx="6" fill="rgba(201,168,76,0.08)" stroke="#C9A84C" stroke-width="0.8"/>
+        <line x1="10" y1="9" x2="28" y2="9" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="10" y1="9" x2="10" y2="29" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="10" y1="19" x2="24" y2="19" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="10" y1="29" x2="26" y2="29" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+      </svg>
+      <span class="login-logo-txt">EDGE<span>TRADE</span></span>
+      <span class="admin-badge">ADMIN</span>
+    </div>
+    <h2 class="login-title">Admin Access</h2>
+    <p class="login-sub">Sign in with your admin account credentials</p>
+    <div class="err-msg" id="err-msg">Invalid credentials or no admin access.</div>
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="admin-email" placeholder="admin@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <div class="field-pass">
+        <input type="password" id="admin-pass" placeholder="Your password" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+        <button class="eye-btn" onclick="toggleEye('admin-pass',this)">👁</button>
+      </div>
+    </div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Access Admin Panel</button>
+    <a href="index.html" class="back-link">← Back to EdgeTrade</a>
+  </div>
+</div>
+
+<!-- ═══════════════ ADMIN APP ═══════════════ -->
+<div class="page" id="page-admin">
+
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-logo">
+      <svg width="24" height="24" viewBox="0 0 38 38" fill="none">
+        <rect width="38" height="38" rx="6" fill="rgba(201,168,76,0.08)" stroke="#C9A84C" stroke-width="0.8"/>
+        <line x1="10" y1="9" x2="28" y2="9" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="10" y1="9" x2="10" y2="29" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="10" y1="19" x2="24" y2="19" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="10" y1="29" x2="26" y2="29" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="square"/>
+      </svg>
+      <div>
+        <div class="sidebar-logo-text">EDGE<span>TRADE</span></div>
+        <div class="admin-label">ADMIN</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-sec">Overview</div>
+      <button class="nav-item active" id="snav-dash" onclick="showAdminSection('dashboard');setNav('snav-dash')">
+        <span class="nav-icon">📊</span>Dashboard
+      </button>
+
+      <div class="nav-sec">Management</div>
+      <button class="nav-item" id="snav-users" onclick="showAdminSection('users');setNav('snav-users')">
+        <span class="nav-icon">👥</span>Users
+      </button>
+      <button class="nav-item" id="snav-tickets" onclick="showAdminSection('tickets');setNav('snav-tickets')">
+        <span class="nav-icon">🎫</span>Support Tickets
+        <span id="ticket-count-badge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;margin-left:auto;"></span>
+      </button>
+
+      <div class="nav-sec">System</div>
+      <button class="nav-item" id="snav-settings" onclick="showAdminSection('admin-settings');setNav('snav-settings')">
+        <span class="nav-icon">⚙️</span>Admin Settings
+      </button>
+      <a href="index.html" style="text-decoration:none;">
+        <button class="nav-item"><span class="nav-icon">🌐</span>View Website</button>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="admin-user">
+        <div class="admin-av" id="admin-av">A</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="admin-name">Admin</div>
+          <div style="font-size:11px;color:var(--muted);">Administrator</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <button class="refresh-btn" onclick="loadCurrentSection()">🔄 Refresh</button>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);" id="last-updated"></span>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- ══ DASHBOARD ══ -->
+      <div class="admin-section active" id="section-dashboard">
+        <div class="page-hdr">
+          <div class="page-hdr-title">Dashboard</div>
+          <div class="page-hdr-sub">Real-time overview of EdgeTrade platform</div>
+        </div>
+
+        <!-- Key metrics -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-lbl">👥 Total Users</div>
+            <div class="metric-val mv-gold" id="m-total-users">—</div>
+            <div class="metric-sub">Registered accounts</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">📈 Active This Month</div>
+            <div class="metric-val mv-green" id="m-active-users">—</div>
+            <div class="metric-sub">Traded in last 30 days</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">📊 Total Trades</div>
+            <div class="metric-val mv-blue" id="m-total-trades">—</div>
+            <div class="metric-sub">Across all users</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">🆕 New This Week</div>
+            <div class="metric-val mv-gold" id="m-new-week">—</div>
+            <div class="metric-sub">New signups</div>
+          </div>
+        </div>
+
+        <div class="metrics-grid" style="margin-bottom:24px;">
+          <div class="metric-card">
+            <div class="metric-lbl">📅 Trading Days</div>
+            <div class="metric-val mv-blue" id="m-total-days">—</div>
+            <div class="metric-sub">Total journal days</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">🔗 Brokers Added</div>
+            <div class="metric-val mv-green" id="m-brokers">—</div>
+            <div class="metric-sub">Total broker connections</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">🎯 Profit Trades</div>
+            <div class="metric-val mv-green" id="m-profit">—</div>
+            <div class="metric-sub">Winning trades logged</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">🎫 Open Tickets</div>
+            <div class="metric-val mv-red" id="m-tickets">—</div>
+            <div class="metric-sub">Awaiting response</div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Win/Loss donut -->
+          <div class="dash-card">
+            <div class="dash-card-title">🎯 Community Win Rate</div>
+            <div class="donut-wrap">
+              <div style="position:relative;width:80px;height:80px;">
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+                  <circle id="donut-arc" cx="40" cy="40" r="30" fill="none" stroke="var(--green)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 188" transform="rotate(-90 40 40)" style="transition:stroke-dasharray 1.2s ease;"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;" id="winrate-center">—</div>
+              </div>
+              <div class="donut-labels">
+                <div class="donut-lbl"><div class="dl-dot" style="background:var(--green);"></div><span>Profit: <strong id="dl-profit">—</strong></span></div>
+                <div class="donut-lbl"><div class="dl-dot" style="background:var(--red);"></div><span>Loss: <strong id="dl-loss">—</strong></span></div>
+                <div class="donut-lbl"><div class="dl-dot" style="background:var(--gold);"></div><span>Breakeven: <strong id="dl-be">—</strong></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick stats -->
+          <div class="dash-card">
+            <div class="dash-card-title">📋 Platform Summary</div>
+            <div class="activity-list" id="platform-summary">
+              <div style="color:var(--muted);font-size:13px;">Loading...</div>
+            </div>
+          </div>
+
+          <!-- Recent signups -->
+          <div class="dash-card" style="grid-column:1/-1;">
+            <div class="dash-card-title">🆕 Recent Signups</div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>User</th><th>Country</th><th>Joined</th><th>Trades</th><th>Days</th></tr>
+                </thead>
+                <tbody id="recent-users-tbody">
+                  <tr><td colspan="5" class="empty-table">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ USERS ══ -->
+      <div class="admin-section" id="section-users">
+        <div class="page-hdr">
+          <div class="page-hdr-title">Users</div>
+          <div class="page-hdr-sub" id="users-count-sub">All registered traders</div>
+        </div>
+        <div class="table-header">
+          <div class="filter-row">
+            <button class="filter-btn active" onclick="setUserFilter('all',this)">All Users</button>
+            <button class="filter-btn" onclick="setUserFilter('active',this)">Active</button>
+            <button class="filter-btn" onclick="setUserFilter('new',this)">New (7 days)</button>
+          </div>
+          <input type="text" class="table-search" placeholder="Search by name or country..." oninput="filterUsers(this.value)" id="user-search">
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Country</th>
+                <th>Joined</th>
+                <th>Trades</th>
+                <th>Days</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="6" class="empty-table">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="users-pagination"></div>
+      </div>
+
+      <!-- ══ TICKETS ══ -->
+      <div class="admin-section" id="section-tickets">
+        <div class="page-hdr">
+          <div class="page-hdr-title">Support Tickets</div>
+          <div class="page-hdr-sub">Manage user queries and support requests</div>
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="setTicketFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setTicketFilter('open',this)">Open</button>
+          <button class="filter-btn" onclick="setTicketFilter('in_progress',this)">In Progress</button>
+          <button class="filter-btn" onclick="setTicketFilter('resolved',this)">Resolved</button>
+        </div>
+        <div class="tickets-grid" id="tickets-grid">
+          <div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">Loading tickets...</div>
+        </div>
+      </div>
+
+      <!-- ══ ADMIN SETTINGS ══ -->
+      <div class="admin-section" id="section-admin-settings">
+        <div class="page-hdr">
+          <div class="page-hdr-title">Admin Settings</div>
+          <div class="page-hdr-sub">Platform configuration and admin management</div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-title">🔑 Admin Account</div>
+          <div class="settings-row">
+            <div><div class="settings-lbl">Admin Email</div></div>
+            <div class="settings-val" id="admin-email-display">—</div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-lbl">User ID</div></div>
+            <div class="settings-val" id="admin-uid-display" style="font-size:11px;">—</div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-lbl">Access Level</div></div>
+            <div><span class="badge badge-active">Super Admin</span></div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-title">🛡️ Add New Admin</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">To add a new admin, go to Supabase → SQL Editor and run:<br><br><code style="background:var(--bg3);padding:4px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);">INSERT INTO admin_users (id) VALUES ('USER-UUID-HERE');</code></p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-title">📊 Database Info</div>
+          <div class="settings-row">
+            <div><div class="settings-lbl">Supabase Project</div></div>
+            <div class="settings-val">ucwgvvsnellchioltkxs</div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-lbl">Region</div></div>
+            <div class="settings-val">Southeast Asia</div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-lbl">Plan</div></div>
+            <div><span class="badge badge-new">Free Tier</span></div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-title">⚡ Quick Actions</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+            <a href="https://app.supabase.com" target="_blank">
+              <button class="btn-sm" style="font-size:13px;padding:9px 18px;border-radius:8px;">Open Supabase →</button>
+            </a>
+            <a href="index.html" target="_blank">
+              <button class="btn-sm" style="font-size:13px;padding:9px 18px;border-radius:8px;">View Website →</button>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end admin-content -->
+  </div><!-- end admin-main -->
+</div><!-- end page-admin -->
+
+<script>
+// ════════════════════════════
+// SUPABASE
+// ════════════════════════════
+const { createClient } = supabase;
+const db = createClient(
+  'https://ucwgvvsnellchioltkxs.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjd2d2dnNuZWxsY2hpb2x0a3hzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODEyOTYsImV4cCI6MjA5NTY1NzI5Nn0.goU5F94rJcih_Nv8Gqp0xR7LjAH8n3zqp8qtLYLQPZM'
+);
+
+// ════════════════════════════
+// STATE
+// ════════════════════════════
+let state = {
+  user: null,
+  allUsers: [],
+  filteredUsers: [],
+  allTickets: [],
+  filteredTickets: [],
+  userFilter: 'all',
+  ticketFilter: 'all',
+  currentPage: 1,
+  perPage: 15,
+  currentSection: 'dashboard'
+};
+
+// ════════════════════════════
+// AUTH
+// ════════════════════════════
+async function doLogin(){
+  const email = document.getElementById('admin-email').value.trim();
+  const pass  = document.getElementById('admin-pass').value;
+  const err   = document.getElementById('err-msg');
+  const btn   = document.getElementById('btn-login');
+  if(!email || !pass){ err.style.display='block'; err.textContent='Please enter email and password.'; return; }
+  btn.disabled=true; btn.textContent='Verifying...';
+  err.style.display='none';
+
+  // Sign in
+  const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+  if(error){ btn.disabled=false; btn.textContent='Access Admin Panel'; err.style.display='block'; err.textContent='Login failed: ' + error.message; return; }
+
+  // Check admin
+  const { data: adminCheck, error: adminErr } = await db.from('admin_users').select('id').eq('id', data.user.id).single();
+  if(adminErr || !adminCheck){ 
+    await db.auth.signOut();
+    btn.disabled=false; btn.textContent='Access Admin Panel';
+    err.style.display='block'; err.textContent='Access denied. You are not an admin. Contact support.';
+    return;
+  }
+
+  btn.disabled=false; btn.textContent='Access Admin Panel';
+  await initAdmin(data.user);
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  showPage('page-login');
+  showToast('Signed out','success');
+}
+
+async function initAdmin(user){
+  state.user = user;
+  const name = user.email?.split('@')[0] || 'Admin';
+  document.getElementById('admin-av').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('admin-name').textContent = name;
+  document.getElementById('admin-email-display').textContent = user.email;
+  document.getElementById('admin-uid-display').textContent = user.id;
+  showPage('page-admin');
+  await loadDashboard();
+  await loadTicketsBadge();
+  updateTimestamp();
+}
+
+// ════════════════════════════
+// NAVIGATION
+// ════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showAdminSection(key){
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('section-'+key).classList.add('active');
+  state.currentSection = key;
+  const titles = {
+    dashboard:'Dashboard', users:'Users',
+    tickets:'Support Tickets', 'admin-settings':'Admin Settings'
+  };
+  document.getElementById('topbar-title').textContent = titles[key] || key;
+  loadCurrentSection();
+}
+
+function setNav(id){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el)el.classList.add('active');
+}
+
+async function loadCurrentSection(){
+  updateTimestamp();
+  if(state.currentSection==='dashboard') await loadDashboard();
+  if(state.currentSection==='users') await loadUsers();
+  if(state.currentSection==='tickets') await loadTickets();
+}
+
+function updateTimestamp(){
+  document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+// ════════════════════════════
+// DASHBOARD
+// ════════════════════════════
+async function loadDashboard(){
+  try {
+    // Get stats via RPC
+    const { data: stats, error } = await db.rpc('get_admin_stats');
+    if(error){ console.error('Stats error:', error); showToast('Stats error: '+error.message,'error'); return; }
+
+    document.getElementById('m-total-users').textContent = stats.total_users || 0;
+    document.getElementById('m-active-users').textContent = stats.active_users_month || 0;
+    document.getElementById('m-total-trades').textContent = stats.total_trades || 0;
+    document.getElementById('m-new-week').textContent = stats.new_users_week || 0;
+    document.getElementById('m-total-days').textContent = stats.total_days || 0;
+    document.getElementById('m-brokers').textContent = stats.total_brokers || 0;
+    document.getElementById('m-profit').textContent = stats.profit_trades || 0;
+    document.getElementById('m-tickets').textContent = stats.open_tickets || 0;
+
+    // Win rate donut
+    const p = parseInt(stats.profit_trades) || 0;
+    const l = parseInt(stats.loss_trades) || 0;
+    const t = p + l;
+    const wr = t > 0 ? Math.round(p/t*100) : 0;
+    const circ = 188;
+    document.getElementById('donut-arc').setAttribute('stroke-dasharray', `${(wr/100)*circ} ${circ}`);
+    document.getElementById('winrate-center').textContent = wr+'%';
+    document.getElementById('dl-profit').textContent = p;
+    document.getElementById('dl-loss').textContent = l;
+    document.getElementById('dl-be').textContent = parseInt(stats.total_trades) - p - l;
+
+    // Platform summary
+    document.getElementById('platform-summary').innerHTML = [
+      { icon:'📊', title:'Avg trades per user', val: stats.total_users>0 ? (stats.total_trades/stats.total_users).toFixed(1) : '0' },
+      { icon:'📅', title:'Total trading days', val: stats.total_days },
+      { icon:'🆕', title:'New users today', val: stats.new_users_today || 0 },
+      { icon:'🎫', title:'Support tickets open', val: stats.open_tickets || 0 },
+    ].map(item=>`
+      <div class="activity-item">
+        <div class="act-icon" style="background:var(--gold-dim);">${item.icon}</div>
+        <div class="act-info"><div class="act-title">${item.title}</div></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--gold);">${item.val}</div>
+      </div>
+    `).join('');
+
+    // Recent users
+    await loadRecentUsers();
+
+  } catch(e){ console.error(e); showToast('Dashboard load error','error'); }
+}
+
+async function loadRecentUsers(){
+  const { data, error } = await db.rpc('get_all_users');
+  if(error){ document.getElementById('recent-users-tbody').innerHTML=`<tr><td colspan="5" class="empty-table">Error: ${error.message}</td></tr>`; return; }
+  state.allUsers = data || [];
+  const recent = state.allUsers.slice(0,8);
+  if(!recent.length){ document.getElementById('recent-users-tbody').innerHTML='<tr><td colspan="5" class="empty-table">No users yet.</td></tr>'; return; }
+  document.getElementById('recent-users-tbody').innerHTML = recent.map(u=>userRow(u)).join('');
+}
+
+// ════════════════════════════
+// USERS
+// ════════════════════════════
+async function loadUsers(){
+  if(!state.allUsers.length){
+    const { data, error } = await db.rpc('get_all_users');
+    if(error){ showToast('Error loading users: '+error.message,'error'); return; }
+    state.allUsers = data || [];
+  }
+  applyUserFilter();
+}
+
+function setUserFilter(f,btn){
+  state.userFilter = f;
+  state.currentPage = 1;
+  document.querySelectorAll('#section-users .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyUserFilter();
+}
+
+function filterUsers(val){
+  state.currentPage = 1;
+  const search = val.toLowerCase();
+  const base = getBaseUsers();
+  state.filteredUsers = search ? base.filter(u=>(u.full_name||'').toLowerCase().includes(search)||(u.country||'').toLowerCase().includes(search)) : base;
+  renderUsersTable();
+}
+
+function getBaseUsers(){
+  const now = new Date();
+  if(state.userFilter==='active') return state.allUsers.filter(u=>u.trade_count>0);
+  if(state.userFilter==='new') return state.allUsers.filter(u=>new Date(u.created_at)>new Date(now-7*24*60*60*1000));
+  return state.allUsers;
+}
+
+function applyUserFilter(){
+  state.filteredUsers = getBaseUsers();
+  const search = document.getElementById('user-search')?.value.toLowerCase()||'';
+  if(search) state.filteredUsers = state.filteredUsers.filter(u=>(u.full_name||'').toLowerCase().includes(search)||(u.country||'').toLowerCase().includes(search));
+  document.getElementById('users-count-sub').textContent = state.filteredUsers.length + ' users found';
+  renderUsersTable();
+}
+
+function renderUsersTable(){
+  const start = (state.currentPage-1)*state.perPage;
+  const page = state.filteredUsers.slice(start, start+state.perPage);
+  const tbody = document.getElementById('users-tbody');
+  if(!page.length){ tbody.innerHTML='<tr><td colspan="6" class="empty-table">No users found.</td></tr>'; renderPagination(); return; }
+  tbody.innerHTML = page.map(u=>userRow(u)).join('');
+  renderPagination();
+}
+
+function userRow(u){
+  const joined = new Date(u.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const isNew = new Date(u.created_at) > new Date(Date.now()-7*24*60*60*1000);
+  const isActive = u.trade_count > 0;
+  const initials = (u.full_name||'?').charAt(0).toUpperCase();
+  const badge = isNew?'<span class="badge badge-new">New</span>':isActive?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>';
+  return `<tr>
+    <td><div class="user-cell">
+      <div class="user-av-sm">${initials}</div>
+      <div class="user-cell-info"><div class="user-name">${u.full_name||'Unknown'}</div></div>
+    </div></td>
+    <td><span class="country-flag">${u.country||'—'}</span></td>
+    <td><span class="mono">${joined}</span></td>
+    <td><span class="mono">${u.trade_count||0}</span></td>
+    <td><span class="mono">${u.day_count||0}</span></td>
+    <td>${badge}</td>
+  </tr>`;
+}
+
+function renderPagination(){
+  const total = Math.ceil(state.filteredUsers.length/state.perPage);
+  const el = document.getElementById('users-pagination');
+  if(total<=1){ el.innerHTML=''; return; }
+  let html='';
+  for(let i=1;i<=total;i++){
+    html+=`<button class="page-btn ${i===state.currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  el.innerHTML=html;
+}
+
+function goPage(p){
+  state.currentPage=p;
+  renderUsersTable();
+}
+
+// ════════════════════════════
+// TICKETS
+// ════════════════════════════
+async function loadTickets(){
+  const { data, error } = await db.from('support_tickets').select('*').order('created_at',{ascending:false});
+  if(error){ showToast('Ticket load error: '+error.message,'error'); return; }
+  state.allTickets = data || [];
+  applyTicketFilter();
+  loadTicketsBadge();
+}
+
+async function loadTicketsBadge(){
+  const { count } = await db.from('support_tickets').select('*',{count:'exact',head:true}).eq('status','open');
+  const badge = document.getElementById('ticket-count-badge');
+  if(count>0){ badge.textContent=count; badge.style.display='inline-block'; }
+  else badge.style.display='none';
+}
+
+function setTicketFilter(f,btn){
+  state.ticketFilter=f;
+  document.querySelectorAll('#section-tickets .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyTicketFilter();
+}
+
+function applyTicketFilter(){
+  state.filteredTickets = state.ticketFilter==='all' ? state.allTickets : state.allTickets.filter(t=>t.status===state.ticketFilter);
+  renderTickets();
+}
+
+function renderTickets(){
+  const el = document.getElementById('tickets-grid');
+  if(!state.filteredTickets.length){ el.innerHTML='<div style="text-align:center;padding:48px;color:var(--muted);font-size:14px;border:1px dashed var(--border);border-radius:14px;">No tickets found.</div>'; return; }
+  el.innerHTML = state.filteredTickets.map(t=>ticketCard(t)).join('');
+}
+
+function ticketCard(t){
+  const statusMap={open:'ts-open',in_progress:'ts-progress',resolved:'ts-resolved'};
+  const statusLabel={open:'Open',in_progress:'In Progress',resolved:'Resolved'};
+  const time = new Date(t.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const replySection = t.admin_reply ? `<div class="admin-reply-box"><div class="admin-reply-lbl">Admin Reply</div>${t.admin_reply}</div>` : '';
+  return `<div class="ticket-card ${t.status}" id="ticket-${t.id}">
+    <div class="ticket-hdr">
+      <div class="ticket-subject">${t.subject}</div>
+      <div class="ticket-meta">
+        <span class="ticket-status ${statusMap[t.status]||'ts-open'}">${statusLabel[t.status]||'Open'}</span>
+        <span class="ticket-time">${time}</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">From: ${t.user_name||'User'} · ${t.user_email||'—'}</div>
+    <div class="ticket-msg">${t.message}</div>
+    ${replySection}
+    <div class="ticket-actions">
+      ${t.status!=='resolved'?`
+        <button class="btn-open-reply" onclick="toggleReply('${t.id}')">💬 Reply</button>
+        <button class="btn-resolve" onclick="resolveTicket('${t.id}')">✅ Mark Resolved</button>
+      `:'<span style="font-size:12px;color:var(--green);">✅ Resolved</span>'}
+    </div>
+    <div class="ticket-reply-section" id="reply-${t.id}">
+      <textarea class="ticket-reply-input" id="reply-text-${t.id}" placeholder="Type your reply to the user..."></textarea>
+      <div class="ticket-actions">
+        <button class="btn-reply" onclick="sendReply('${t.id}')">Send Reply</button>
+        <button class="btn-open-reply" onclick="toggleReply('${t.id}')">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleReply(id){
+  const el = document.getElementById('reply-'+id);
+  el.classList.toggle('open');
+}
+
+async function sendReply(id){
+  const text = document.getElementById('reply-text-'+id).value.trim();
+  if(!text){ showToast('Please write a reply first','error'); return; }
+  const { error } = await db.from('support_tickets').update({admin_reply:text,status:'in_progress',updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){ showToast('Error: '+error.message,'error'); return; }
+  showToast('Reply sent!','success');
+  await loadTickets();
+}
+
+async function resolveTicket(id){
+  const { error } = await db.from('support_tickets').update({status:'resolved',updated_at:new Date().toISOString()}).eq('id',id);
+  if(error){ showToast('Error: '+error.message,'error'); return; }
+  showToast('Ticket resolved!','success');
+  await loadTickets();
+}
+
+// ════════════════════════════
+// HELPERS
+// ════════════════════════════
+function toggleEye(id,btn){
+  const i=document.getElementById(id);
+  i.type=i.type==='password'?'text':'password';
+  btn.textContent=i.type==='text'?'🙈':'👁';
+}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=(type==='success'?'✓ ':'')+msg;
+  t.className='toast show '+(type==='success'?'success':'error');
+  setTimeout(()=>t.className='toast',3000);
+}
+
+// ════════════════════════════
+// INIT
+// ════════════════════════════
+window.onload = async function(){
+  const { data:{session} } = await db.auth.getSession();
+  if(session?.user){
+    const { data:adminCheck } = await db.from('admin_users').select('id').eq('id',session.user.id).single();
+    if(adminCheck) await initAdmin(session.user);
+    else showPage('page-login');
+  } else {
+    showPage('page-login');
+  }
+
+  setTimeout(()=>{
+    const ls=document.getElementById('load');
+    ls.style.opacity='0';ls.style.transition='opacity 0.5s';
+    setTimeout(()=>ls.style.display='none',500);
+  },1500);
+};
+</script>
+</body>
+</html>
