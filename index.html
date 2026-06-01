@@ -2421,20 +2421,36 @@ window.onload=async function(){
   buildCountryList();
   renderChartList(CHARTS);
 
-  // Check if user is already logged in
-  const {data:{session}}=await db.auth.getSession();
-  if(session?.user){
-    await initApp(session.user);
-  } else {
+  // Force hide loader after 4 seconds no matter what
+  const forceHide = setTimeout(()=>{
+    const ls=document.getElementById('loading-screen');
+    if(ls){ls.style.opacity='0';ls.style.transition='opacity 0.5s';setTimeout(()=>ls.style.display='none',500);}
+    showPage('page-landing');
+  }, 4000);
+
+  try {
+    // Check if user is already logged in — with 3s timeout
+    const sessionPromise = db.auth.getSession();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({data:{session:null}}), 3000));
+    const {data:{session}} = await Promise.race([sessionPromise, timeoutPromise]);
+
+    clearTimeout(forceHide);
+
+    if(session?.user){
+      await initApp(session.user);
+    } else {
+      showPage('page-landing');
+    }
+  } catch(e) {
+    clearTimeout(forceHide);
     showPage('page-landing');
   }
 
   // Hide loading screen
   setTimeout(()=>{
     const ls=document.getElementById('loading-screen');
-    ls.style.opacity='0';ls.style.transition='opacity 0.5s';
-    setTimeout(()=>ls.style.display='none',500);
-  },1500);
+    if(ls){ls.style.opacity='0';ls.style.transition='opacity 0.5s';setTimeout(()=>ls.style.display='none',500);}
+  },800);
 
   // Auth state changes
   db.auth.onAuthStateChange((event,session)=>{
