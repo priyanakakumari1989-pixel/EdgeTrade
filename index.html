@@ -1594,12 +1594,13 @@ async function loadProfile(){
 }
 
 async function loadBrokers(){
-  const {data}=await db.from('user_brokers').select('*').eq('user_id',state.user.id).order('created_at');
+  const {data}=await db.from('user_broker_connections').select('*').eq('user_id',state.user.id).eq('is_active',true).order('created_at');
   state.brokers=data||[];
   if(state.brokers.length>0&&!state.activeBroker){
     const b=state.brokers[0];
     state.activeBroker=b.id;
-    document.getElementById('active-broker-nm').textContent=b.name;
+    const nm=b.account_label||b.name||'Broker';
+    document.getElementById('active-broker-nm').textContent=nm;
   }
 }
 
@@ -2005,6 +2006,7 @@ function renderConnected(){
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         ${!b.is_manual?`<button onclick="event.stopPropagation();syncBroker('${b.id}','${b.broker_id}')" style="background:var(--gold-dim);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:10px;color:var(--gold);cursor:pointer;">🔄 Sync</button>`:''}
+        <button onclick="event.stopPropagation();deleteBroker('${b.id}','${b.account_label||b.name}')" style="background:var(--red-dim);border:1px solid rgba(224,82,82,0.3);border-radius:6px;padding:4px 8px;font-size:10px;color:var(--red);cursor:pointer;">🗑</button>
         <div class="conn-status ${b.is_manual?'conn-status-m':''}" style="background:${statusColor};box-shadow:0 0 5px ${statusColor};"></div>
       </div>
     `;
@@ -2122,13 +2124,37 @@ function selectBroker(b){
 }
 
 async function syncBroker(connectionId, brokerId){
-  showToast('Syncing trades... (Edge Functions needed - Tuesday)','success');
-  // Tuesday ke baad Edge Functions se yeh kaam karega
-  // await db.functions.invoke('sync-'+brokerId, { body: { connection_id: connectionId } });
+  showToast('Syncing trades...','success');
+  try {
+    const { data, error } = await db.functions.invoke('sync-'+brokerId, {
+      body: { connection_id: connectionId }
+    });
+    if(error) throw error;
+    const synced = data?.trades_synced ?? 0;
+    showToast('Sync complete! '+synced+' trade'+(synced===1?'':'s')+' imported.','success');
+    // Reload data
+    await loadDays();
+    renderConnected();
+  } catch(e) {
+    console.error('Sync error:', e);
+    showToast('Sync failed: '+(e.message||'Unknown error'),'error');
+  }
 }
 
-// ══════════════════════════════════════
-// STATS
+async function deleteBroker(connectionId, name){
+  if(!confirm('Delete "'+name+'"?\n\nYeh broker aur uske saare sync data hata dega.\nKya aap sure hain?')) return;
+  const { error } = await db.from('user_broker_connections').delete().eq('id', connectionId);
+  if(error){ showToast('Error: '+error.message,'error'); return; }
+  state.brokers = state.brokers.filter(b=>b.id!==connectionId);
+  if(state.activeBroker===connectionId){
+    state.activeBroker = state.brokers[0]?.id || null;
+    const nm = state.brokers[0]?.account_label || state.brokers[0]?.name || 'No Broker';
+    document.getElementById('active-broker-nm').textContent = nm;
+  }
+  renderConnected();
+  renderAvailable(allBrokerConfigs);
+  showToast(name+' removed.','success');
+}
 // ══════════════════════════════════════
 function setStatsFilter(f,btn){
   state.statsFilter=f;
