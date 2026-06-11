@@ -770,10 +770,145 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/journal-analytics.js"></script>
 <script src="js/animation.js"></script>
+
+<script>
+// ══════════════════════════════════════
+// PAGE & AUTH NAVIGATION
+// ══════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page, .app-page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+
+  // Mobile nav only visible inside app
+  const mobileNav = document.getElementById('mobile-nav');
+  if (mobileNav) mobileNav.style.display = (id === 'page-app') ? 'block' : 'none';
+}
+
+function showAuth(tab) {
+  showPage('page-auth');
+  switchTab(tab || 'login');
+}
+
+function switchTab(tab) {
+  ['login', 'signup', 'forgot'].forEach(t => {
+    const form = document.getElementById('form-' + t);
+    if (form) form.style.display = (t === tab) ? '' : 'none';
+  });
+  const tabLogin  = document.getElementById('tab-login');
+  const tabSignup = document.getElementById('tab-signup');
+  if (tabLogin)  tabLogin.classList.toggle('active',  tab === 'login');
+  if (tabSignup) tabSignup.classList.toggle('active', tab === 'signup');
+}
+
+// ══════════════════════════════════════
+// AUTH HANDLERS (Supabase)
+// ══════════════════════════════════════
+function showMsg(type, text) {
+  const s = document.getElementById('msg-success');
+  const e = document.getElementById('msg-error');
+  if (s) s.style.display = 'none';
+  if (e) e.style.display = 'none';
+  const el = document.getElementById('msg-' + type);
+  if (el) { el.textContent = text; el.style.display = 'block'; }
+}
+
+async function handleLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  if (!email || !pass) { showMsg('error', 'Please fill in all fields.'); return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    showMsg('success', '✓ Signed in! Loading your journal...');
+    setTimeout(() => loadApp(data.user), 800);
+  } catch (err) {
+    showMsg('error', err.message || 'Login failed. Check your credentials.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In to EdgeTrade';
+  }
+}
+
+async function handleSignup() {
+  const name    = document.getElementById('s-name').value.trim();
+  const email   = document.getElementById('s-email').value.trim();
+  const pass    = document.getElementById('s-pass').value;
+  const country = document.getElementById('s-country').value;
+  if (!name || !email || !pass) { showMsg('error', 'Please fill in all fields.'); return; }
+  if (pass.length < 6) { showMsg('error', 'Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('btn-signup');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  try {
+    const { data, error } = await window.supabaseClient.auth.signUp({
+      email, password: pass,
+      options: { data: { full_name: name, country: country || '' } }
+    });
+    if (error) throw error;
+    showMsg('success', '✓ Account created! Check your email to confirm, then sign in.');
+    setTimeout(() => switchTab('login'), 2000);
+  } catch (err) {
+    showMsg('error', err.message || 'Signup failed. Try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Free Account';
+  }
+}
+
+async function handleForgot() {
+  const email = document.getElementById('f-email').value.trim();
+  if (!email) { showMsg('error', 'Enter your email address.'); return; }
+  const btn = document.getElementById('btn-forgot');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email);
+    if (error) throw error;
+    showMsg('success', '✓ Reset link sent! Check your inbox.');
+  } catch (err) {
+    showMsg('error', err.message || 'Failed to send reset link.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send Reset Link';
+  }
+}
+
+function toggleEye(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ══════════════════════════════════════
+// APP LOADER — called after successful login
+// ══════════════════════════════════════
+function loadApp(user) {
+  showPage('page-app');
+  // Update UI with user info
+  const name = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Trader';
+  const initial = name.charAt(0).toUpperCase();
+  const sidebarName = document.getElementById('sidebar-name');
+  const sidebarAv   = document.getElementById('sidebar-av');
+  const topbarAv    = document.getElementById('topbar-av');
+  if (sidebarName) sidebarName.textContent = name;
+  if (sidebarAv)   sidebarAv.textContent   = initial;
+  if (topbarAv)    topbarAv.textContent     = initial;
+}
+
+// ══════════════════════════════════════
+// SESSION CHECK on page load
+// ══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!window.supabaseClient) return;
+  const { data: { session } } = await window.supabaseClient.auth.getSession();
+  if (session?.user) {
+    loadApp(session.user);
+  }
+});
+</script>
   
 </body>
 </html>
