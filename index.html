@@ -295,7 +295,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 .month-badge{padding:4px 12px;border-radius:20px;border:1px solid var(--border);font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
 
 /* Day Cards */
-.days-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.days-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;padding-bottom:16px;}
 .empty-state{grid-column:1/-1;text-align:center;padding:56px 20px;border:1px dashed var(--border);border-radius:16px;background:rgba(201,168,76,0.02);}
 .empty-icon{font-size:44px;margin-bottom:14px;opacity:0.5;}
 .empty-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--muted);margin-bottom:6px;}
@@ -594,6 +594,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 .broker-search::placeholder{color:var(--muted);}
 .broker-search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
 .avail-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+@media(max-width:480px){.avail-grid{grid-template-columns:1fr;}}
 .avail-broker{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;transition:all 0.2s;}
 .avail-broker:hover{border-color:var(--gold);background:var(--gold-dim);}
 .avail-emoji{font-size:17px;flex-shrink:0;}
@@ -645,6 +646,15 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
   .fg2,.fg3{grid-template-columns:1fr;}
   .avail-grid{grid-template-columns:1fr;}
   .stats-big-grid{grid-template-columns:1fr 1fr;}
+  .stats-grid2{grid-template-columns:1fr;}
+  .hero{padding:80px 16px 60px;}
+  .hero-content{width:100%;max-width:100%;overflow:hidden;}
+  .hero-title{font-size:clamp(32px,8vw,56px);}
+  .hero-sub{font-size:15px;padding:0 4px;}
+  .hero-pills{padding:0 4px;}
+  .hero-btns{flex-direction:column;align-items:stretch;padding:0 4px;}
+  .hero-btn{text-align:center;}
+  .sbar-grid{grid-template-columns:1fr 1fr;}
 }
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
@@ -883,6 +893,8 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 
 <!-- ════════════ APP ════════════ -->
 <div class="app-page" id="page-app">
+  <!-- SIDEBAR BACKDROP -->
+  <div id="sidebar-backdrop" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;z-index:49;background:rgba(0,0,0,0.5);"></div>
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
@@ -915,7 +927,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
   <div class="main-content">
     <div class="topbar">
       <div class="topbar-left">
-        <button class="mob-menu" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+        <button class="mob-menu" onclick="openSidebar()">☰</button>
         <div class="broker-sel" id="broker-sel-btn" onclick="openBrokerPopup()">
           <div class="b-dot"></div>
           <span class="b-nm" id="active-broker-nm">Select Broker</span>
@@ -1454,11 +1466,21 @@ function showPage(id){
   window.scrollTo(0,0);
 }
 
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  const bd=document.getElementById('sidebar-backdrop');
+  if(bd)bd.style.display='block';
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  const bd=document.getElementById('sidebar-backdrop');
+  if(bd)bd.style.display='none';
+}
 function showSection(key){
   document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active'));
   const el = document.getElementById('section-'+key);
   if(el) el.classList.add('active');
-  document.getElementById('sidebar').classList.remove('open');
+  closeSidebar();
   if(key==='home') refreshHome();
   if(key==='trade-list') refreshTradeList();
   if(key==='stats') renderStats();
