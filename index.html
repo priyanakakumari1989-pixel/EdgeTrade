@@ -491,7 +491,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 /* ════════════════════════════════
    PROFILE PAGE (F)
 ════════════════════════════════ */
-.profile-layout{max-width:640px;margin:0 auto;}
+.profile-layout{max-width:640px;margin:0 auto;padding-bottom:100px;}
 .profile-header{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;margin-bottom:16px;position:relative;overflow:hidden;}
 .profile-header::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
 .profile-avatar-wrap{position:relative;width:88px;height:88px;margin:0 auto 16px;}
@@ -523,12 +523,12 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 .settings-layout{max-width:640px;margin:0 auto;}
 .settings-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px;}
 .settings-card-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:500;color:var(--gold);margin-bottom:20px;}
-.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border2);}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border2);gap:12px;overflow:hidden;}
 .settings-row:last-child{border-bottom:none;}
-.settings-row-info{flex:1;}
+.settings-row-info{flex:1;min-width:0;}
 .settings-row-label{font-size:14px;font-weight:500;margin-bottom:2px;}
 .settings-row-sub{font-size:12px;color:var(--muted);}
-.settings-row-action{flex-shrink:0;}
+.settings-row-action{flex-shrink:0;max-width:60%;display:flex;justify-content:flex-end;}
 
 /* Theme buttons */
 .theme-btns{display:flex;gap:8px;flex-wrap:wrap;}
@@ -1156,7 +1156,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
           <div class="profile-header">
             <div class="profile-avatar-wrap">
               <div class="profile-avatar" id="profile-av-big">A</div>
-              <div class="profile-avatar-edit" title="Change photo">✏️</div>
+              <div class="profile-avatar-edit" title="Change photo" onclick="changeDP()">✏️</div>
             </div>
             <div class="profile-name-wrap">
               <div class="profile-name" id="profile-name-display">Loading...</div>
@@ -1589,7 +1589,16 @@ async function loadProfile(){
     document.getElementById('sidebar-av').textContent=initials;
     document.getElementById('topbar-av').textContent=initials;
     document.getElementById('profile-name-display').textContent=name;
-    document.getElementById('profile-av-big').textContent=initials;
+    const avEl=document.getElementById('profile-av-big');
+    const savedDp=localStorage.getItem('et-dp');
+    if(savedDp){
+      avEl.style.backgroundImage=`url(${savedDp})`;
+      avEl.style.backgroundSize='cover';
+      avEl.style.backgroundPosition='center';
+      avEl.textContent='';
+    } else {
+      avEl.textContent=initials;
+    }
     document.getElementById('profile-email-display').textContent=state.user.email||'';
   }
 }
@@ -2348,6 +2357,33 @@ async function editName(){
   if(state.profile)state.profile.full_name=name.trim();
   await loadProfile();
   showToast('Name updated!','success');
+}
+
+function changeDP(){
+  // Create hidden file input
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    if(file.size > 2*1024*1024){ showToast('Image too large. Max 2MB.','error'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      // Show in avatar
+      const av = document.getElementById('profile-av-big');
+      av.style.backgroundImage = `url(${dataUrl})`;
+      av.style.backgroundSize = 'cover';
+      av.style.backgroundPosition = 'center';
+      av.textContent = '';
+      // Save to localStorage (no Supabase storage needed)
+      localStorage.setItem('et-dp', dataUrl);
+      showToast('Profile photo updated!','success');
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
 }
 
 // ══════════════════════════════════════
