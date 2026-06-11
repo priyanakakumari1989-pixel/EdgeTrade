@@ -1951,13 +1951,39 @@ let selectedBrokerConfig = null;
 
 async function openBrokerPopup(){
   document.getElementById('broker-popup').classList.add('open');
+  document.body.style.overflow='hidden';
   showBrokerMain();
   await loadBrokerConfigs();
   renderConnected();
 }
 
-function closeBrokerPopup(){document.getElementById('broker-popup').classList.remove('open');}
+function closeBrokerPopup(){
+  document.getElementById('broker-popup').classList.remove('open');
+  document.body.style.overflow='';
+}
 function closeBrokerOutside(e){if(e.target===document.getElementById('broker-popup'))closeBrokerPopup();}
+
+// Block page scroll when broker popup is open
+(function(){
+  const overlay = document.getElementById('broker-popup');
+  if(!overlay) return;
+  overlay.addEventListener('touchmove', function(e){
+    const panel = overlay.querySelector('.popup-panel');
+    if(panel && panel.contains(e.target)){
+      e.stopPropagation();
+    } else {
+      e.preventDefault();
+    }
+  }, {passive:false});
+  overlay.addEventListener('wheel', function(e){
+    const panel = overlay.querySelector('.popup-panel');
+    if(panel && panel.contains(e.target)){
+      e.stopPropagation();
+    } else {
+      e.preventDefault();
+    }
+  }, {passive:false});
+})();
 
 function showBrokerMain(){
   document.getElementById('broker-main-view').style.display='block';
