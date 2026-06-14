@@ -670,6 +670,69 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.15);border-radius:2px;}
+
+/* ════════ STRATEGY AUTOCOMPLETE ════════ */
+.strategy-wrap{position:relative;}
+.strategy-dd{
+  position:absolute;bottom:calc(100%+6px);left:0;right:0;z-index:999;
+  background:#13131E;border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;box-shadow:0 -8px 32px rgba(0,0,0,0.6);
+  display:none;max-height:220px;overflow-y:auto;
+}
+.strategy-dd.open{display:block;animation:fadeUp 0.18s ease;}
+.strategy-dd-header{
+  padding:8px 14px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--gold);border-bottom:1px solid var(--border);background:var(--gold-dim);
+  display:flex;align-items:center;gap:6px;
+}
+.strategy-item{
+  padding:10px 14px;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:background 0.15s;border-bottom:1px solid var(--border2);
+}
+.strategy-item:last-child{border-bottom:none;}
+.strategy-item:hover{background:var(--gold-dim);color:var(--gold);}
+.strategy-item-name{flex:1;}
+.strategy-item-count{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:2px 8px;border:1px solid var(--border2);border-radius:20px;}
+.strategy-item:hover .strategy-item-count{border-color:var(--gold);color:var(--gold);}
+.strategy-dd-empty{padding:14px;text-align:center;color:var(--muted);font-size:12px;}
+
+/* ════════ STRATEGY STATS CARD ════════ */
+.strat-filter-wrap{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.strat-filter-btn{
+  padding:6px 14px;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:12px;cursor:pointer;
+  transition:all 0.2s;font-family:'Outfit',sans-serif;
+}
+.strat-filter-btn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
+.strat-row{
+  display:flex;align-items:center;gap:10px;padding:12px 0;
+  border-bottom:1px solid var(--border2);cursor:pointer;transition:background 0.15s;
+}
+.strat-row:last-child{border-bottom:none;}
+.strat-row:hover{background:var(--gold-dim);border-radius:8px;padding-left:8px;}
+.strat-name{flex:1;font-size:13px;font-weight:500;}
+.strat-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.strat-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-family:'JetBrains Mono',monospace;border:1px solid;}
+.sb-total{color:var(--muted);border-color:var(--border2);}
+.sb-win{color:var(--green);border-color:rgba(76,175,125,0.3);background:rgba(76,175,125,0.07);}
+.sb-loss{color:var(--red);border-color:rgba(224,82,82,0.3);background:rgba(224,82,82,0.07);}
+.sb-wr{color:var(--gold);border-color:rgba(201,168,76,0.3);background:rgba(201,168,76,0.07);}
+.strat-bar-wrap{width:100%;height:4px;background:rgba(255,255,255,0.07);border-radius:2px;margin-top:4px;}
+.strat-bar{height:100%;border-radius:2px;transition:width 0.4s ease;}
+.strat-detail-panel{
+  background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:14px;margin-top:10px;display:none;
+}
+.strat-detail-panel.open{display:block;animation:fadeUp 0.2s ease;}
+.strat-compare-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px;}
+.strat-compare-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;text-align:center;
+}
+.strat-compare-name{font-size:11px;color:var(--muted);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.strat-compare-wr{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;}
+.strat-compare-sub{font-size:10px;color:var(--muted);margin-top:2px;}
 </style>
 </head>
 <body>
@@ -1125,7 +1188,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
             </div>
           </div>
 
-          <div class="entry-sec"><div class="entry-sec-title">📋 Strategy & Setups</div><div class="field"><textarea id="e-strategy" placeholder="What's your strategy? BOS on 15m, FVG fill, London sweep..." style="min-height:100px;"></textarea></div></div>
+          <div class="entry-sec"><div class="entry-sec-title">📋 Strategy & Setups</div><div class="field"><div class="strategy-wrap"><textarea id="e-strategy" placeholder="What's your strategy? BOS on 15m, FVG fill, London sweep..." style="min-height:100px;" onfocus="openStrategyDD()" oninput="filterStrategyDD(this.value)"></textarea><div class="strategy-dd" id="strategy-dd"><div class="strategy-dd-header">⚡ Your Saved Strategies</div><div id="strategy-dd-list"></div></div></div></div></div>
           <div class="entry-sec"><div class="entry-sec-title">👁️ Market Bias & Point of View</div><div class="field"><textarea id="e-pov" placeholder="Your market view, bias, confluences..." style="min-height:100px;"></textarea></div></div>
           <div class="entry-sec"><div class="entry-sec-title">🧠 Psychology & Mindset</div><div class="field"><textarea id="e-psych" placeholder="Emotional state, confidence level, FOMO, revenge trade?" style="min-height:85px;"></textarea></div></div>
 
@@ -1208,6 +1271,19 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
               <span>🟢 Profit day</span><span>🔴 Loss day</span><span>⬜ No trades</span>
             </div>
           </div>
+          <!-- Strategy Performance -->
+          <div class="stats-card" style="grid-column:1/-1;">
+            <div class="stats-card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+              <span>📊 Strategy Performance</span>
+              <div class="strat-filter-wrap" style="margin:0;">
+                <button class="strat-filter-btn active" onclick="setStratView('list',this)">List View</button>
+                <button class="strat-filter-btn" onclick="setStratView('compare',this)">Compare</button>
+              </div>
+            </div>
+            <div id="strat-list-view"><div style="color:var(--muted);font-size:13px;">No strategy data yet. Start logging trades with strategies.</div></div>
+            <div id="strat-compare-view" style="display:none;"><div class="strat-compare-grid" id="strat-compare-grid"></div></div>
+          </div>
+
           <!-- Weak Points -->
           <div class="stats-card" style="grid-column:1/-1;">
             <div class="stats-card-title">⚠️ Your Weak Points</div>
@@ -2482,6 +2558,10 @@ function renderStats(){
   wpEl.innerHTML=wps.map(w=>`<div class="weak-item"><span class="weak-icon">⚠️</span><div class="weak-text">${w}</div></div>`).join('');
 
   // Calendar
+  // Strategy Performance
+  renderStrategyStats(trades);
+
+  // Calendar
   renderCalendar();
 }
 
@@ -2745,6 +2825,180 @@ window.onload=async function(){
   });
 };
 </script>
+<script>
+// ══════════════════════════════════════
+// STRATEGY AUTOCOMPLETE SYSTEM
+// ══════════════════════════════════════
+let _strategyCache = [];
+let _stratDDOpen = false;
+
+async function loadUserStrategies(){
+  if(!state.user) return;
+  try {
+    const {data} = await db.from('trades')
+      .select('strategy')
+      .eq('user_id', state.user.id)
+      .not('strategy','is',null)
+      .neq('strategy','');
+    if(!data){_strategyCache=[];return;}
+    const map={};
+    data.forEach(t=>{
+      const s=(t.strategy||'').trim();
+      if(s) map[s]=(map[s]||0)+1;
+    });
+    _strategyCache = Object.entries(map)
+      .map(([strategy,usage_count])=>({strategy,usage_count}))
+      .sort((a,b)=>b.usage_count-a.usage_count);
+  } catch(e){_strategyCache=[];}
+}
+
+function openStrategyDD(){
+  if(!_strategyCache.length){
+    loadUserStrategies().then(()=>renderStrategyDD(''));
+  } else {
+    renderStrategyDD(document.getElementById('e-strategy').value||'');
+  }
+  const dd = document.getElementById('strategy-dd');
+  if(dd) dd.classList.add('open');
+  _stratDDOpen = true;
+}
+
+function filterStrategyDD(val){
+  renderStrategyDD(val);
+  const dd = document.getElementById('strategy-dd');
+  if(!dd) return;
+  if(_strategyCache.length>0){ dd.classList.add('open'); _stratDDOpen=true; }
+}
+
+function renderStrategyDD(query){
+  const list = document.getElementById('strategy-dd-list');
+  if(!list) return;
+  const q=(query||'').toLowerCase().trim();
+  const filtered = q ? _strategyCache.filter(s=>s.strategy.toLowerCase().includes(q)) : _strategyCache;
+  if(!filtered.length){
+    list.innerHTML='<div class="strategy-dd-empty">No saved strategies yet. Type and save your first trade!</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(s=>{
+    const safeName = s.strategy.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<div class="strategy-item" onclick="selectStrategy(\'' + safeName + '\')"><span class="strategy-item-name">' + s.strategy + '</span><span class="strategy-item-count">' + s.usage_count + 'x used</span></div>';
+  }).join('');
+}
+
+function selectStrategy(name){
+  const ta = document.getElementById('e-strategy');
+  if(ta) ta.value = name;
+  closeStrategyDD();
+}
+
+function closeStrategyDD(){
+  const dd = document.getElementById('strategy-dd');
+  if(dd) dd.classList.remove('open');
+  _stratDDOpen = false;
+}
+
+document.addEventListener('click', function(e){
+  if(!_stratDDOpen) return;
+  const wrap = document.querySelector('.strategy-wrap');
+  if(wrap && !wrap.contains(e.target)) closeStrategyDD();
+});
+
+// Hook into initApp to load strategies
+const _origInitApp = window.initApp;
+window.initApp = async function(user){
+  await _origInitApp.call(this, user);
+  await loadUserStrategies();
+};
+
+// Reload strategies after saveTrade
+const _origSaveTrade = window.saveTrade;
+window.saveTrade = async function(){
+  await _origSaveTrade.call(this);
+  await loadUserStrategies();
+};
+
+// ══════════════════════════════════════
+// STRATEGY STATS
+// ══════════════════════════════════════
+let _stratView = 'list';
+
+function setStratView(view, btn){
+  _stratView = view;
+  document.querySelectorAll('.strat-filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('strat-list-view').style.display = view==='list' ? 'block' : 'none';
+  document.getElementById('strat-compare-view').style.display = view==='compare' ? 'block' : 'none';
+}
+
+function renderStrategyStats(trades){
+  const map={};
+  trades.forEach(t=>{
+    const s=(t.strategy||'').trim();
+    if(!s)return;
+    if(!map[s]) map[s]={name:s,total:0,wins:0,losses:0,bes:0};
+    map[s].total++;
+    if(t.conclusion==='target') map[s].wins++;
+    else if(t.conclusion==='loss') map[s].losses++;
+    else map[s].bes++;
+  });
+  const strats = Object.values(map).sort((a,b)=>b.total-a.total);
+  const listEl = document.getElementById('strat-list-view');
+  if(!strats.length){
+    listEl.innerHTML='<div style="color:var(--muted);font-size:13px;">No strategy data yet. Start logging trades with strategies.</div>';
+    const cg = document.getElementById('strat-compare-grid'); if(cg) cg.innerHTML='';
+    return;
+  }
+  const maxTotal = Math.max(...strats.map(s=>s.total));
+  listEl.innerHTML = strats.map((s,i)=>{
+    const wr = Math.round(s.wins/s.total*100);
+    const barColor = wr>=60?'var(--green)':wr>=40?'var(--gold)':'var(--red)';
+    return '<div>' +
+      '<div class="strat-row" onclick="toggleStratDetail(\'strat-detail-' + i + '\')">' +
+        '<div style="flex:1;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' +
+            '<span class="strat-name">' + s.name + '</span>' +
+            '<div class="strat-badges">' +
+              '<span class="strat-badge sb-total">' + s.total + ' trades</span>' +
+              '<span class="strat-badge sb-win">&#x2705; ' + s.wins + '</span>' +
+              '<span class="strat-badge sb-loss">&#x274C; ' + s.losses + '</span>' +
+              '<span class="strat-badge sb-wr" style="font-weight:700;">' + wr + '%</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="strat-bar-wrap"><div class="strat-bar" style="width:' + (s.total/maxTotal*100) + '%;background:' + barColor + ';"></div></div>' +
+        '</div>' +
+        '<span style="margin-left:10px;color:var(--muted);font-size:12px;">&#x203A;</span>' +
+      '</div>' +
+      '<div class="strat-detail-panel" id="strat-detail-' + i + '">' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">' +
+          '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:600;color:' + barColor + ';">' + wr + '%</div><div style="font-size:10px;color:var(--muted);">Win Rate</div></div>' +
+          '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:600;color:var(--white);">' + s.total + '</div><div style="font-size:10px;color:var(--muted);">Trades</div></div>' +
+          '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:600;color:var(--green);">' + s.wins + '</div><div style="font-size:10px;color:var(--muted);">Wins</div></div>' +
+          '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:600;color:var(--red);">' + s.losses + '</div><div style="font-size:10px;color:var(--muted);">Losses</div></div>' +
+        '</div>' +
+        (s.bes>0 ? '<div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">&#x2696;&#xFE0F; ' + s.bes + ' Breakeven trade' + (s.bes>1?'s':'') + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  const grid = document.getElementById('strat-compare-grid');
+  if(grid){
+    grid.innerHTML = strats.map(s=>{
+      const wr = Math.round(s.wins/s.total*100);
+      const col = wr>=60?'var(--green)':wr>=40?'var(--gold)':'var(--red)';
+      return '<div class="strat-compare-card"><div class="strat-compare-name" title="' + s.name + '">' + s.name + '</div><div class="strat-compare-wr" style="color:' + col + ';">' + wr + '%</div><div class="strat-compare-sub">' + s.wins + 'W &middot; ' + s.losses + 'L &middot; ' + s.total + ' total</div></div>';
+    }).join('');
+  }
+}
+
+function toggleStratDetail(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.strat-detail-panel').forEach(p=>p.classList.remove('open'));
+  if(!isOpen) el.classList.add('open');
+}
+</script>
+
 <script>
 // ═══════════════════════════════════
 // CANDLE RAIN ANIMATION — TAGDA VERSION
