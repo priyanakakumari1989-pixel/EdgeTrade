@@ -759,6 +759,12 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 .strat-compare-name{font-size:11px;color:var(--muted);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .strat-compare-wr{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;}
 .strat-compare-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
+.calc-broker-chip{padding:8px 16px;border-radius:30px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;}
+.calc-broker-chip.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+.calc-msg-user{background:var(--gold-dim);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;align-self:flex-end;max-width:85%;}
+.calc-msg-ai{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--white);max-width:90%;line-height:1.6;}
+.calc-msg-loading{color:var(--muted);font-size:13px;font-style:italic;}
 </style>
 </head>
 <body>
@@ -1003,6 +1009,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
       <button class="nav-item active" id="snav-home" onclick="showSection('home');setSideNav('snav-home')"><span class="nav-icon">📋</span>Journal</button>
       <button class="nav-item" id="snav-stats" onclick="showSection('stats');setSideNav('snav-stats')"><span class="nav-icon">📊</span>Statistics</button>
       <button class="nav-item" id="snav-bot" onclick="showSection('bot');setSideNav('snav-bot')"><span class="nav-icon">🤖</span>Assistant</button>
+      <button class="nav-item" id="snav-calc" onclick="showSection('calculator');setSideNav('snav-calc')"><span class="nav-icon">🧮</span>Calculator</button>
       <div class="nav-sec-lbl">Account</div>
       <button class="nav-item" onclick="openBrokerPopup()"><span class="nav-icon">🔗</span>Brokers</button>
       <button class="nav-item" id="snav-profile" onclick="showSection('profile');setSideNav('snav-profile')"><span class="nav-icon">👤</span>Profile</button>
@@ -1032,6 +1039,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
         </div>
       </div>
       <div class="topbar-right">
+        <button class="tb-btn" title="Calculator" onclick="showSection('calculator');setSideNav('snav-calc')">🧮</button>
         <button class="tb-btn" title="Notifications" style="position:relative;">🔔<div class="notif-dot"></div></button>
         <button class="tb-btn" onclick="showSection('profile')">
           <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--gold),#8B6914);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0A0A0F;" id="topbar-av">A</div>
@@ -1333,6 +1341,69 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
           <div style="display:flex;gap:10px;">
             <input type="text" id="bot-input" placeholder="Ask anything..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:14px;outline:none;" onkeypress="if(event.key==='Enter')sendBot()">
             <button onclick="sendBot()" style="padding:11px 18px;border-radius:8px;background:var(--gold);color:#0A0A0F;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALCULATOR -->
+      <div class="content-section" id="section-calculator">
+        <div class="page-hdr-row" style="margin-bottom:20px;">
+          <div>
+            <div class="page-hdr-title">🧮 AI Calculator</div>
+            <div class="page-hdr-sub">Position size, risk & drawdown — powered by AI</div>
+          </div>
+        </div>
+
+        <!-- BROKER SELECTOR -->
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;" id="calc-broker-row"></div>
+
+        <!-- QUICK INPUTS -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+          <div class="field"><label>Capital / Balance</label><div class="prefix-wrap"><span class="pfx">₹</span><input type="number" id="calc-capital" placeholder="Auto from broker"></div></div>
+          <div class="field"><label>Risk %</label><input type="range" id="calc-risk-slider" min="0.5" max="5" step="0.5" value="1" oninput="document.getElementById('calc-risk-val').textContent=this.value+'%'" style="accent-color:var(--gold);width:100%;margin-top:8px;"><span id="calc-risk-val" style="font-size:13px;color:var(--gold);">1%</span></div>
+          <div class="field"><label>Entry Price</label><input type="number" id="calc-entry" placeholder="Entry price"></div>
+          <div class="field"><label>Stop Loss</label><input type="number" id="calc-sl" placeholder="Stop loss"></div>
+          <div class="field"><label>Target Price</label><input type="number" id="calc-tp" placeholder="Target price"></div>
+        </div>
+
+        <!-- RESULTS ROW -->
+        <div id="calc-results" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;">
+            <div style="text-align:center;"><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Position Size</div><div id="cr-pos" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold);">—</div></div>
+            <div style="text-align:center;"><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Risk Amount</div><div id="cr-risk" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--red);">—</div></div>
+            <div style="text-align:center;"><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">R:R Ratio</div><div id="cr-rr" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--green);">—</div></div>
+            <div style="text-align:center;"><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Max Drawdown</div><div id="cr-dd" style="font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--blue);">—</div></div>
+          </div>
+        </div>
+
+        <!-- AI CHAT SECTION -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <span style="font-size:18px;">🤖</span>
+            <div>
+              <div style="font-size:14px;font-weight:500;">AI Trading Assistant</div>
+              <div style="font-size:11px;color:var(--muted);">Describe your trade setup or upload a chart screenshot</div>
+            </div>
+          </div>
+          <!-- Chat Messages -->
+          <div id="calc-chat-msgs" style="min-height:200px;max-height:360px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);border:1px solid var(--border2);">
+              👋 Hello! I'm your AI trading calculator. Tell me your trade setup — entry, stop loss, target — and I'll calculate position size, risk, and drawdown for you. You can also upload a chart screenshot!
+            </div>
+          </div>
+          <!-- Image Preview -->
+          <div id="calc-img-preview" style="display:none;padding:0 16px 10px;">
+            <div style="position:relative;display:inline-block;">
+              <img id="calc-img-el" style="max-height:120px;border-radius:8px;border:1px solid var(--border);">
+              <button onclick="clearCalcImg()" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:white;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+          </div>
+          <!-- Input Area -->
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;">
+            <label for="calc-img-inp" style="cursor:pointer;padding:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:16px;flex-shrink:0;transition:all 0.2s;" title="Upload chart screenshot">📷</label>
+            <input type="file" id="calc-img-inp" accept="image/*" style="display:none;" onchange="handleCalcImg(this)">
+            <textarea id="calc-chat-inp" placeholder="Describe your trade setup, strategy, or ask anything..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:14px;outline:none;resize:none;min-height:44px;max-height:120px;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCalcMsg();}"></textarea>
+            <button onclick="sendCalcMsg()" style="padding:10px 18px;background:var(--gold);color:#0A0A0F;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;flex-shrink:0;">Send</button>
           </div>
         </div>
       </div>
@@ -1656,6 +1727,7 @@ function showSection(key){
   if(key==='home') refreshHome();
   if(key==='trade-list') refreshTradeList();
   if(key==='stats') renderStats();
+  if(key==='calculator') initCalcBrokers();
 }
 
 function setSideNav(id){
@@ -3195,6 +3267,161 @@ function toggleStratDetail(id){
     obs.observe(heroSection);
   }
 })();
+
+// ══════════════════════════════════════
+// CALCULATOR + AI
+// ══════════════════════════════════════
+let calcImg = null;
+
+function initCalcBrokers(){
+  const row = document.getElementById('calc-broker-row');
+  if(!row) return;
+  row.innerHTML = '';
+  if(!state.brokers || state.brokers.length === 0){
+    row.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px;">No brokers connected. <a href="#" onclick="openBrokerPopup();return false;" style="color:var(--gold);">Connect a broker</a></div>';
+    return;
+  }
+  state.brokers.forEach((b, i) => {
+    const chip = document.createElement('button');
+    chip.className = 'calc-broker-chip' + (i===0?' active':'');
+    chip.textContent = b.account_label || b.name || 'Broker';
+    chip.onclick = () => {
+      document.querySelectorAll('.calc-broker-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      // Auto-fill capital if available
+      if(b.balance) document.getElementById('calc-capital').value = b.balance;
+    };
+    row.appendChild(chip);
+  });
+  // Auto-fill capital from first broker
+  const first = state.brokers[0];
+  if(first && first.balance) document.getElementById('calc-capital').value = first.balance;
+}
+
+// Quick calculate on input change
+['calc-capital','calc-entry','calc-sl','calc-tp'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', quickCalc);
+});
+document.getElementById('calc-risk-slider')?.addEventListener('input', quickCalc);
+
+function quickCalc(){
+  const capital = parseFloat(document.getElementById('calc-capital').value);
+  const entry = parseFloat(document.getElementById('calc-entry').value);
+  const sl = parseFloat(document.getElementById('calc-sl').value);
+  const tp = parseFloat(document.getElementById('calc-tp').value);
+  const riskPct = parseFloat(document.getElementById('calc-risk-slider').value) / 100;
+  if(!capital || !entry || !sl) return;
+  const riskAmt = capital * riskPct;
+  const slDist = Math.abs(entry - sl);
+  if(slDist === 0) return;
+  const posSize = riskAmt / slDist;
+  const rr = tp ? (Math.abs(tp - entry) / slDist).toFixed(2) : '—';
+  const maxDD = (riskAmt * 5).toFixed(0); // 5 consecutive losses estimate
+  document.getElementById('cr-pos').textContent = posSize.toFixed(4);
+  document.getElementById('cr-risk').textContent = '₹' + riskAmt.toFixed(0);
+  document.getElementById('cr-rr').textContent = rr !== '—' ? '1:' + rr : '—';
+  document.getElementById('cr-dd').textContent = '₹' + maxDD;
+  document.getElementById('calc-results').style.display = 'block';
+}
+
+function handleCalcImg(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    calcImg = e.target.result;
+    document.getElementById('calc-img-el').src = calcImg;
+    document.getElementById('calc-img-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearCalcImg(){
+  calcImg = null;
+  document.getElementById('calc-img-preview').style.display = 'none';
+  document.getElementById('calc-img-inp').value = '';
+}
+
+async function sendCalcMsg(){
+  const inp = document.getElementById('calc-chat-inp');
+  const msgs = document.getElementById('calc-chat-msgs');
+  const text = inp.value.trim();
+  if(!text && !calcImg) return;
+
+  // User message
+  const userDiv = document.createElement('div');
+  userDiv.className = 'calc-msg-user';
+  if(calcImg){
+    userDiv.innerHTML = `<img src="${calcImg}" style="max-height:80px;border-radius:6px;display:block;margin-bottom:6px;">${text||'(image)'}`;
+  } else {
+    userDiv.textContent = text;
+  }
+  msgs.appendChild(userDiv);
+  inp.value = '';
+
+  // Loading
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'calc-msg-loading';
+  loadDiv.textContent = 'AI is thinking...';
+  msgs.appendChild(loadDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Gather context
+  const capital = document.getElementById('calc-capital').value;
+  const entry = document.getElementById('calc-entry').value;
+  const sl = document.getElementById('calc-sl').value;
+  const tp = document.getElementById('calc-tp').value;
+  const risk = document.getElementById('calc-risk-slider').value;
+  const activeBroker = state.brokers?.find(b => b.id === state.activeBroker);
+  const brokerName = activeBroker?.name || 'Unknown Broker';
+
+  const systemPrompt = `You are an expert trading calculator AI assistant for EdgeTrade, a professional trading journal app.
+User's context:
+- Broker: ${brokerName}
+- Capital/Balance: ${capital || 'Not provided'}
+- Risk %: ${risk}%
+- Entry Price: ${entry || 'Not provided'}
+- Stop Loss: ${sl || 'Not provided'}
+- Target: ${tp || 'Not provided'}
+
+Help the user calculate position size, risk amount in currency, R:R ratio, and potential drawdown scenarios.
+Be concise but thorough. Format numbers clearly. If chart image is provided, analyze it and give trade setup suggestions.
+Always calculate in the user's broker currency context. Keep responses under 200 words and use clear formatting.`;
+
+  try {
+    const contentArr = [];
+    if(calcImg){
+      const base64 = calcImg.split(',')[1];
+      const mtype = calcImg.split(';')[0].split(':')[1];
+      contentArr.push({type:'image',source:{type:'base64',media_type:mtype,data:base64}});
+    }
+    contentArr.push({type:'text',text: text || 'Analyze this chart and suggest trade parameters.'});
+
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system: systemPrompt,
+        messages:[{role:'user',content:contentArr}]
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.map(c=>c.text||'').join('') || 'Sorry, could not get a response.';
+
+    loadDiv.remove();
+    const aiDiv = document.createElement('div');
+    aiDiv.className = 'calc-msg-ai';
+    aiDiv.innerHTML = reply.replace(/\n/g,'<br>');
+    msgs.appendChild(aiDiv);
+    clearCalcImg();
+  } catch(e) {
+    loadDiv.textContent = 'Error: Could not connect to AI. Please try again.';
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
 </script>
 
 <!-- STRATEGY MODAL -->
