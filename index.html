@@ -3271,6 +3271,14 @@ function toggleStratDetail(id){
 // ══════════════════════════════════════
 // CALCULATOR + AI
 // ══════════════════════════════════════
+
+// ── Gemini API Key (session only — GitHub safe) ──
+let GEMINI_KEY = sessionStorage.getItem("GEMINI_API_KEY");
+if (!GEMINI_KEY) {
+  GEMINI_KEY = prompt("EdgeTrade AI Testing — Apni Gemini API Key paste karo (session mein rahegi, GitHub push nahi hogi):");
+  if (GEMINI_KEY) sessionStorage.setItem("GEMINI_API_KEY", GEMINI_KEY);
+}
+
 let calcImg = null;
 
 function initCalcBrokers(){
@@ -3390,26 +3398,34 @@ Be concise but thorough. Format numbers clearly. If chart image is provided, ana
 Always calculate in the user's broker currency context. Keep responses under 200 words and use clear formatting.`;
 
   try {
-    const contentArr = [];
-    if(calcImg){
+    if (!GEMINI_KEY) {
+      loadDiv.textContent = 'API Key missing! Page refresh karo aur key daalo.';
+      return;
+    }
+
+    // Build Gemini content parts
+    const parts = [];
+    parts.push({ text: systemPrompt + '\n\nUser: ' + (text || 'Analyze this chart and suggest trade parameters.') });
+    if (calcImg) {
       const base64 = calcImg.split(',')[1];
       const mtype = calcImg.split(';')[0].split(':')[1];
-      contentArr.push({type:'image',source:{type:'base64',media_type:mtype,data:base64}});
+      parts.push({ inline_data: { mime_type: mtype, data: base64 } });
     }
-    contentArr.push({type:'text',text: text || 'Analyze this chart and suggest trade parameters.'});
 
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
-        system: systemPrompt,
-        messages:[{role:'user',content:contentArr}]
-      })
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts }] })
     });
     const data = await res.json();
-    const reply = data.content?.map(c=>c.text||'').join('') || 'Sorry, could not get a response.';
+
+    if (data.error) {
+      loadDiv.textContent = 'API Error: ' + data.error.message;
+      return;
+    }
+
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI.';
 
     loadDiv.remove();
     const aiDiv = document.createElement('div');
@@ -3418,7 +3434,7 @@ Always calculate in the user's broker currency context. Keep responses under 200
     msgs.appendChild(aiDiv);
     clearCalcImg();
   } catch(e) {
-    loadDiv.textContent = 'Error: Could not connect to AI. Please try again.';
+    loadDiv.textContent = 'Network Error: ' + e.message;
   }
   msgs.scrollTop = msgs.scrollHeight;
 }
