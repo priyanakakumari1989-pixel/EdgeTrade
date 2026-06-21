@@ -243,9 +243,20 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
   .nav-item:hover{background:var(--gold-dim);color:var(--white);}
   .nav-item.active{background:var(--gold-dim);border-color:var(--border);color:var(--gold);font-weight:600;}
   .nav-icon{font-size:20px;flex-shrink:0;}
+  .nav-icon{font-size:20px;flex-shrink:0;}
   .nav-icon-img{width:40px;height:40px;object-fit:cover;border-radius:50%;display:block;image-rendering:auto;filter:drop-shadow(0 0 6px var(--gold-glow));transition:transform 0.18s,filter 0.18s;}
+  /* Assistant and Calculator artwork should fill the circular frame better */
   .nav-item#snav-bot .nav-icon-img,
-  .mn-item#mn-bot .nav-icon-img{width:46px;height:46px;}
+  .mn-item#mn-bot .nav-icon-img,
+  .nav-item#snav-calc .nav-icon-img{
+    /* zoom artwork slightly without changing container size */
+    transform: scale(1.18);
+  }
+  .nav-item#snav-bot:hover .nav-icon-img,
+  .mn-item#mn-bot:hover .nav-icon-img,
+  .nav-item#snav-calc:hover .nav-icon-img{
+    transform: scale(1.26);
+  }
 
   /* Make sure content sits above animated border layers */
   .nav-item > *{position:relative;z-index:3;}
