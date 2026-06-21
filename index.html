@@ -243,7 +243,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
   .nav-item:hover{background:var(--gold-dim);color:var(--white);}
   .nav-item.active{background:var(--gold-dim);border-color:var(--border);color:var(--gold);font-weight:600;}
   .nav-icon{font-size:20px;flex-shrink:0;}
-  .nav-icon-img{width:34px;height:34px;object-fit:contain;border-radius:8px;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;filter:drop-shadow(0 0 6px var(--gold-glow));transition:transform 0.18s,filter 0.18s;}
+  .nav-icon-img{width:40px;height:40px;object-fit:cover;border-radius:8px;display:block;image-rendering:auto;filter:drop-shadow(0 0 6px var(--gold-glow));transition:transform 0.18s,filter 0.18s;}
 
   /* Make sure content sits above animated border layers */
   .nav-item > *{position:relative;z-index:3;}
@@ -253,7 +253,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 
   /* Animated rotating glow border for active nav-item */
   .nav-item.active::before{content:'';position:absolute;top:-6px;left:-6px;right:-6px;bottom:-6px;border-radius:12px;background:conic-gradient(from 0deg,var(--gold) 0deg,var(--gold) 40deg,transparent 60deg,transparent 360deg);filter:blur(6px);animation:navGlowRotate 4s linear infinite;opacity:0.9;z-index:1;pointer-events:none;}
-  .nav-item.active::after{content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;border-radius:10px;background:var(--bg2);z-index:2;pointer-events:none;}
+  .nav-item.active::after{content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;border-radius:10px;background:transparent;z-index:2;pointer-events:none;}
 
   @keyframes navGlowRotate{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 .sidebar-bottom{padding:14px 10px;border-top:1px solid var(--border);}
