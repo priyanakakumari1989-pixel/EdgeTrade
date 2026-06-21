@@ -2338,7 +2338,7 @@ const BROKER_LOGOS = {
   'coinbase': {bg:'#0052FF', svg:'<circle cx="12" cy="12" r="8" fill="#fff"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="#0052FF"/>'},
   'coinswitch': {bg:'#fff', svg:'<path d="M12 4 A8 8 0 0 0 12 20 Z" fill="#1B4332"/><path d="M12 4 A8 8 0 0 1 12 20 Z" fill="#2DD4A8"/>'},
   'delta': {bg:'#0B0B0B', svg:'<path d="M4 8L13 8L7 16L4 16Z" fill="#F47920"/><path d="M9 8L18 8L12 16L9 16Z" fill="#3EA64A"/>'},
-  'kucoin': {bg:'#fff', svg:'<path d="M7 4L7 20" stroke="#24AE8F" stroke-width="2.4" stroke-linecap="round"/><path d="M7 12L13 5M7 12L13 19" stroke="#24AE8F" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="6" r="2.2" fill="#24AE8F"/>'},
+  'kucoin': {bg:'#fff', svg:'<path d="M5 4L5 20M5 12L11 5M5 12L11 19" stroke="#26C0A4" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="12" r="1.7" fill="#26C0A4"/>'},
   'okx': {bg:'#fff', svg:'<rect x="4" y="4" width="5" height="5" fill="#000"/><rect x="15" y="4" width="5" height="5" fill="#000"/><rect x="9.5" y="9.5" width="5" height="5" fill="#000"/><rect x="4" y="15" width="5" height="5" fill="#000"/><rect x="15" y="15" width="5" height="5" fill="#000"/>'},
   'exness': {bg:'#0B0B0B', svg:'<ellipse cx="12" cy="12" rx="7" ry="7" fill="none" stroke="#FFC727" stroke-width="2"/><path d="M6.5 17.5L17.5 6.5" stroke="#FFC727" stroke-width="2" stroke-linecap="round"/>'},
   'hotforex': {bg:'#0B0B0B', svg:'<text x="0" y="22" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#fff">HF</text><text x="36" y="22" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#D62B2B">M</text>', viewBox:'0 0 60 30', scale:1.3},
@@ -2349,7 +2349,7 @@ const BROKER_LOGOS = {
   'metatrader 5': {bg:'linear-gradient(160deg,#4A9FE8,#2E7BC4)', svg:'<circle cx="12" cy="9" r="3.4" fill="#3CB54A"/><circle cx="8" cy="14" r="3" fill="#F2B632"/><circle cx="16" cy="14" r="3" fill="#3D8FD6"/><circle cx="12" cy="13.5" r="3.4" fill="#fff"/><text x="9.7" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="7" fill="#E8821E">5</text>'},
   'zerodha': {bg:'#fff', svg:'<path d="M20 5L11 12L20 19L15 19L6 12L15 5Z" fill="#E2492B"/>'},
   'upstox': {bg:'#5A1F6B', svg:'<path d="M5 13c2 0 3-2 3-5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/><rect x="11.5" y="6" width="2.4" height="12" fill="#fff"/><path d="M14.5 12a3.5 3.5 0 1 0 0 0.01" stroke="#fff" stroke-width="2.2" fill="none"/>'},
-  'angel one': {bg:'#fff', svg:'<path d="M12 4L19 18H5Z" fill="#1A56DB"/><path d="M12 4L8 12H16Z" fill="#F47920"/>'},
+  'angel one': {bg:'#fff', svg:'<rect x="4" y="14" width="2.6" height="2.6" fill="#F47920"/><rect x="7.2" y="14" width="2.6" height="2.6" fill="#F47920"/><rect x="10.4" y="14" width="2.6" height="2.6" fill="#F47920"/><rect x="5.6" y="11" width="2.6" height="2.6" fill="#F47920"/><rect x="8.8" y="11" width="2.6" height="2.6" fill="#F47920"/><rect x="7.2" y="8" width="2.6" height="2.6" fill="#F47920"/><path d="M11 17L16 6L21 17Z" fill="#1A56DB"/>'},
   'groww': {bg:'linear-gradient(160deg,#5B8DEF,#34D399)', svg:'<path d="M5 16l4-5 3 3 6-9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>', round:true}
 };
 
@@ -2358,13 +2358,22 @@ function getBrokerLogoHTML(name, size){
   if(!name) return null;
   const key = name.toLowerCase().replace(/\s*\(mt[45]\)\s*/g,'').trim();
   const fullKey = name.toLowerCase().trim();
-  const entry = BROKER_LOGOS[fullKey] || BROKER_LOGOS[key];
+  let entry = BROKER_LOGOS[fullKey] || BROKER_LOGOS[key];
+  if(!entry){
+    // Try matching by checking if any logo key is a prefix word of the broker name
+    const foundKey = Object.keys(BROKER_LOGOS).find(k => key.startsWith(k) || k.startsWith(key));
+    if(foundKey) entry = BROKER_LOGOS[foundKey];
+  }
   if(!entry) return null;
-  const radius = entry.round ? '50%' : Math.round(size*0.3)+'px';
+  const radius = entry.round ? '50%' : Math.round(size*0.28)+'px';
   const vb = entry.viewBox || '0 0 24 24';
+  const vbParts = vb.split(' ').map(Number);
+  const vbW = vbParts[2] || 24;
+  const vbH = vbParts[3] || 24;
   const scale = entry.scale || 1;
-  const svgSize = Math.round(size*0.6*scale);
-  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${entry.bg};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);flex-shrink:0;overflow:hidden;"><svg width="${svgSize}" height="${Math.round(svgSize*0.6)}" viewBox="${vb}">${entry.svg}</svg></div>`;
+  const svgW = Math.round(size*0.72*scale);
+  const svgH = Math.round(svgW * (vbH/vbW));
+  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${entry.bg};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);flex-shrink:0;overflow:hidden;"><svg width="${svgW}" height="${svgH}" viewBox="${vb}">${entry.svg}</svg></div>`;
 }
 
 async function openBrokerPopup(){
@@ -2424,7 +2433,7 @@ function showConnectForm(config){
   // Fill broker info
   document.getElementById('connect-broker-title').textContent = 'Connect ' + config.name;
   const emojiEl = document.getElementById('connect-broker-emoji');
-  const customLogo = getBrokerLogoHTML(config.name, 32);
+  const customLogo = getBrokerLogoHTML(config.name, 44);
   if(customLogo){ emojiEl.innerHTML = customLogo; } else { emojiEl.textContent = config.emoji || '🏦'; }
   document.getElementById('connect-broker-name').textContent = config.name;
   document.getElementById('connect-broker-type').textContent = config.type;
@@ -2478,7 +2487,7 @@ function renderConnected(){
     d.className = 'conn-item' + (isSelected?' selected':'');
     d.onclick = ()=>selectBroker(b);
     const brokerName = config.name || b.name;
-    const logoHTML = getBrokerLogoHTML(brokerName, 36) || `<div class="conn-logo">${config.emoji||b.emoji||'🏦'}</div>`;
+    const logoHTML = getBrokerLogoHTML(brokerName, 44) || `<div class="conn-logo">${config.emoji||b.emoji||'🏦'}</div>`;
     d.innerHTML = `
       ${logoHTML}
       <div class="conn-info">
@@ -2505,7 +2514,7 @@ function renderAvailable(list){
     const isConnected = connectedIds.includes(b.id);
     d.style.opacity = isConnected ? '0.5' : '1';
     d.onclick = ()=>{ if(!isConnected) showConnectForm(b); else showToast(b.name+' already connected','error'); };
-    const logoHTML = getBrokerLogoHTML(b.name, 30) || `<span class="avail-emoji">${b.emoji||'🏦'}</span>`;
+    const logoHTML = getBrokerLogoHTML(b.name, 40) || `<span class="avail-emoji">${b.emoji||'🏦'}</span>`;
     d.innerHTML = `
       ${logoHTML}
       <div>
