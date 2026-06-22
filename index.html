@@ -241,7 +241,13 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 .nav-sec-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 8px 5px;}
   .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all 0.18s;color:var(--muted);font-size:16px;border:1px solid transparent;background:none;width:100%;font-family:'Outfit',sans-serif;position:relative;overflow:visible;}
   .nav-item:hover{background:var(--gold-dim);color:var(--white);}
-  .nav-item.active{background:var(--gold-dim);border-color:var(--border);color:var(--gold);font-weight:600;}
+  .nav-item.active{
+    background: linear-gradient(180deg, rgba(61,73,99,0.95) 0%, rgba(20,24,55,0.98) 45%, rgba(8,7,25,1) 100%);
+    border: 1px solid rgba(238,215,181,0.92);
+    border-radius: 999px;
+    color: var(--gold);
+    font-weight: 600;
+  }
   .nav-icon{font-size:20px;flex-shrink:0;}
   .nav-icon{font-size:20px;flex-shrink:0;}
   .nav-icon-img{width:40px;height:40px;object-fit:cover;border-radius:50%;display:block;image-rendering:auto;filter:drop-shadow(0 0 6px var(--gold-glow));transition:transform 0.18s,filter 0.18s;}
@@ -268,8 +274,9 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
 
   /* Active nav item: simple highlighted background (no glow) */
   .nav-item.active {
-    background: var(--gold-dim);
-    border-color: var(--border);
+    background: linear-gradient(180deg, rgba(61,73,99,0.95) 0%, rgba(20,24,55,0.98) 45%, rgba(8,7,25,1) 100%);
+    border: 1px solid rgba(238,215,181,0.92);
+    border-radius: 999px;
     color: var(--gold);
     font-weight: 600;
   }
