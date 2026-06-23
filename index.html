@@ -2696,7 +2696,7 @@ function selectBroker(b){
 
 async function syncBroker(connectionId, brokerId){
   showToast('Syncing trades...','success');
-  
+  try {
     const { data, error } = await db.functions.invoke('sync-'+brokerId, {
       body: { connection_id: connectionId }
     });
