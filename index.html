@@ -1232,7 +1232,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
                 <input type="hidden" id="e-lot-unit" value="lot">
               </div>
 
-              <div class="field"><label>Entry Time</label><input type="time" id="e-time" oninput="autoDetectSession(this.value)"></div>
+              <div class="field"><label>Entry Time</label><input type="time" id="e-time" oninput="autoDetectSession(this.value)" onchange="autoDetectSession(this.value)"></div>
 
               <!-- LEVERAGE — same Delta style: [200X ▼]  [slider fills rest] -->
               <div class="field">
