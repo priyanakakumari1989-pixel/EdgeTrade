@@ -823,6 +823,10 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
   padding:14px;margin-top:10px;display:none;
 }
 .strat-detail-panel.open{display:block;animation:fadeUp 0.2s ease;}
+.strat-session-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);font-size:12px;}
+.strat-session-row:first-of-type{border-top:1px solid var(--border);margin-top:10px;padding-top:10px;}
+.strat-session-name{color:var(--muted);}
+.strat-session-wr{font-weight:700;}
 .strat-compare-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px;}
 .strat-compare-card{
   background:var(--bg2);border:1px solid var(--border);border-radius:10px;
@@ -3442,11 +3446,17 @@ function renderStrategyStats(trades){
   trades.forEach(t=>{
     const s=(t.strategy||'').trim();
     if(!s)return;
-    if(!map[s]) map[s]={name:s,total:0,wins:0,losses:0,bes:0};
+    if(!map[s]) map[s]={name:s,total:0,wins:0,losses:0,bes:0,bySession:{}};
     map[s].total++;
     if(t.conclusion==='target') map[s].wins++;
     else if(t.conclusion==='loss') map[s].losses++;
     else map[s].bes++;
+    const sess=(t.session||'').trim();
+    if(sess){
+      if(!map[s].bySession[sess]) map[s].bySession[sess]={total:0,wins:0};
+      map[s].bySession[sess].total++;
+      if(t.conclusion==='target') map[s].bySession[sess].wins++;
+    }
   });
   const strats = Object.values(map).sort((a,b)=>b.total-a.total);
   const listEl = document.getElementById('strat-list-view');
@@ -3483,6 +3493,7 @@ function renderStrategyStats(trades){
           '<div><div style="font-family:\'Cormorant Garamond\',serif;font-size:22px;font-weight:600;color:var(--red);">' + s.losses + '</div><div style="font-size:10px;color:var(--muted);">Losses</div></div>' +
         '</div>' +
         (s.bes>0 ? '<div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center;">&#x2696;&#xFE0F; ' + s.bes + ' Breakeven trade' + (s.bes>1?'s':'') + '</div>' : '') +
+        (Object.keys(s.bySession).length>0 ? '<div class="strat-session-block">' + Object.keys(s.bySession).sort((a,b)=>s.bySession[b].total-s.bySession[a].total).map(sessName=>{ const sm=s.bySession[sessName]; const swr=Math.round(sm.wins/sm.total*100); const swrColor=swr>=60?'var(--green)':swr>=40?'var(--gold)':'var(--red)'; return '<div class="strat-session-row"><span class="strat-session-name">' + sessName + ' (' + sm.total + ')</span><span class="strat-session-wr" style="color:' + swrColor + ';">\xA0' + swr + '%</span></div>'; }).join('') + '</div>' : '') +
       '</div>' +
     '</div>';
   }).join('');
