@@ -2597,7 +2597,7 @@ function showConnectForm(config){
 async function loadBrokerConfigs(){
   if(allBrokerConfigs.length > 0){ renderAvailable(allBrokerConfigs); return; }
   const { data, error } = await db.from('broker_configs').select('*').eq('is_active', true).eq('is_manual', false).order('market').order('name');
-  if(error){ console.error('Broker configs error:', error); return; }
+  if(error){ return; }
   allBrokerConfigs = data || [];
   renderAvailable(allBrokerConfigs);
 }
@@ -2767,8 +2767,8 @@ async function syncBroker(connectionId, brokerId){
     await loadDays();
     renderConnected();
   } catch(e) {
-    console.error('Sync error:', e);
-    showToast('Sync failed: '+(e.message||'Unknown error'),'error');
+    // error suppressed
+    showToast('Sync failed. Please try again.','error');
   }
 }
 
