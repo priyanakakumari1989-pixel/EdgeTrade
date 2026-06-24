@@ -1228,7 +1228,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
                 <input type="hidden" id="e-lot-unit" value="lot">
               </div>
 
-              <div class="field"><label>Entry Time</label><input type="time" id="e-time"></div>
+              <div class="field"><label>Entry Time</label><input type="time" id="e-time" oninput="autoDetectSession(this.value)"></div>
 
               <!-- LEVERAGE — same Delta style: [200X ▼]  [slider fills rest] -->
               <div class="field">
@@ -1349,6 +1349,7 @@ footer{padding:36px 60px;border-top:1px solid var(--border);display:flex;align-i
           <div class="stats-card">
             <div class="stats-card-title">📍 Session Performance</div>
             <div id="session-analysis"><div style="color:var(--muted);font-size:13px;">No data yet. Start journaling to see insights.</div></div>
+            <button class="strat-filter-btn" style="margin-top:10px;" onclick="backfillSessions()">Auto-fill missing sessions from entry time</button>
           </div>
           <!-- Day Analysis -->
           <div class="stats-card">
@@ -2292,6 +2293,49 @@ document.addEventListener('click',function(e){
     }
   });
 });
+
+function getSessionFromISTTime(timeStr){
+  if(!timeStr)return null;
+  const [hh,mm]=timeStr.split(':').map(Number);
+  if(isNaN(hh)||isNaN(mm))return null;
+  const totalMin=hh*60+mm;
+  // All ranges below are in IST (24hr clock, minutes since midnight)
+  // London-NY Overlap: 18:30–22:30 IST
+  if(totalMin>=(18*60+30)&&totalMin<=(22*60+30))return 'London-NY Overlap';
+  // London: 13:30–22:30 IST
+  if(totalMin>=(13*60+30)&&totalMin<=(22*60+30))return 'London';
+  // New York: 18:30 IST – 03:30 IST (wraps past midnight)
+  if(totalMin>=(18*60+30)||totalMin<=(3*60+30))return 'New York';
+  // Asian: 05:30–14:30 IST
+  if(totalMin>=(5*60+30)&&totalMin<=(14*60+30))return 'Asian';
+  // Anything else (very early IST morning gap) — fallback
+  if(totalMin>=(3*60+30)&&totalMin<(5*60+30))return 'Pre-Market';
+  return 'Post-Market';
+}
+
+function autoDetectSession(timeStr){
+  const sess=getSessionFromISTTime(timeStr);
+  const sel=document.getElementById('e-session');
+  if(sess&&sel)sel.value=sess;
+}
+
+async function backfillSessions(){
+  const allTrades=[];
+  (state.days||[]).forEach(d=>{(d.trades||[]).forEach(t=>allTrades.push(t));});
+  const toUpdate=allTrades.filter(t=>!t.session && t.entry_time);
+  if(toUpdate.length===0){showToast('No trades need session backfill.','success');return;}
+  if(!confirm(`This will auto-fill the Session field for ${toUpdate.length} trade(s) that have an Entry Time but no Session, based on IST time ranges. Continue?`))return;
+  let updated=0;
+  for(const t of toUpdate){
+    const sess=getSessionFromISTTime(t.entry_time);
+    if(sess){
+      const { error } = await db.from('trades').update({session:sess}).eq('id',t.id);
+      if(!error){t.session=sess;updated++;}
+    }
+  }
+  showToast(`Backfilled session for ${updated} trade(s).`,'success');
+  renderStats();
+}
 
 // Broker lot sync — called when broker sends trade data via postMessage or websocket
 function syncBrokerLot(lotValue, unit){
