@@ -3188,11 +3188,11 @@ function changeDP(){
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const filePath = `${state.user.id}/avatar.${ext}`;
       const { error: uploadError } = await db.storage.from('avatars').upload(filePath, file, { upsert: true });
-      if(uploadError){ showToast('Upload failed: '+uploadError.message,'error'); return; }
+      if(uploadError){ alert('UPLOAD ERROR: '+JSON.stringify(uploadError)); return; }
       const { data: urlData } = db.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl + '?t=' + Date.now();
       const { error: updateError } = await db.from('profiles').update({ avatar_url: publicUrl }).eq('id', state.user.id);
-      if(updateError){ showToast('Could not save photo: '+updateError.message,'error'); return; }
+      if(updateError){ alert('DB UPDATE ERROR: '+JSON.stringify(updateError)); return; }
       const applyDp = (el) => {
         if(!el) return;
         el.style.backgroundImage=`url(${publicUrl})`;
@@ -3206,7 +3206,7 @@ function changeDP(){
       if(state.profile) state.profile.avatar_url = publicUrl;
       showToast('Profile photo updated!','success');
     }catch(err){
-      showToast('Upload failed: '+err.message,'error');
+      alert('CATCH ERROR: '+err.message);
     }
   };
   inp.click();
