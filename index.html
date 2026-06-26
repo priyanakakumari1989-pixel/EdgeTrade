@@ -1973,7 +1973,7 @@ async function loadProfile(){
     document.getElementById('sidebar-name').textContent=name;
     document.getElementById('profile-name-display').textContent=name;
     document.getElementById('profile-email-display').textContent=state.user.email||'';
-    const savedDp=localStorage.getItem('et-dp');
+    const savedDp=data.avatar_url;
     // Profile big avatar
     const avEl=document.getElementById('profile-av-big');
     // Sidebar avatar
@@ -3183,11 +3183,19 @@ function changeDP(){
     const file = e.target.files[0];
     if(!file) return;
     if(file.size > 2*1024*1024){ showToast('Image too large. Max 2MB.','error'); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
+    showToast('Uploading photo...','info');
+    try{
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const filePath = `${state.user.id}/avatar.${ext}`;
+      const { error: uploadError } = await db.storage.from('avatars').upload(filePath, file, { upsert: true });
+      if(uploadError){ showToast('Upload failed: '+uploadError.message,'error'); return; }
+      const { data: urlData } = db.storage.from('avatars').getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl + '?t=' + Date.now();
+      const { error: updateError } = await db.from('profiles').update({ avatar_url: publicUrl }).eq('id', state.user.id);
+      if(updateError){ showToast('Could not save photo: '+updateError.message,'error'); return; }
       const applyDp = (el) => {
-        el.style.backgroundImage=`url(${dataUrl})`;
+        if(!el) return;
+        el.style.backgroundImage=`url(${publicUrl})`;
         el.style.backgroundSize='cover';
         el.style.backgroundPosition='center';
         el.textContent='';
@@ -3195,10 +3203,11 @@ function changeDP(){
       applyDp(document.getElementById('profile-av-big'));
       applyDp(document.getElementById('sidebar-av'));
       applyDp(document.getElementById('topbar-av'));
-      localStorage.setItem('et-dp', dataUrl);
+      if(state.profile) state.profile.avatar_url = publicUrl;
       showToast('Profile photo updated!','success');
-    };
-    reader.readAsDataURL(file);
+    }catch(err){
+      showToast('Upload failed: '+err.message,'error');
+    }
   };
   inp.click();
 }
