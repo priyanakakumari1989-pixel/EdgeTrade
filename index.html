@@ -2461,44 +2461,44 @@ document.addEventListener('click',e=>{
 let allBrokerConfigs = [];
 let selectedBrokerConfig = null;
 
-// Premium 3D-style broker logos (custom designed, brand-color matched — not official trademarked logos)
-const BROKER_LOGOS = {
-  'binance': {bg:'#0B0B0B', svg:'<path d="M12 5.5L14.2 7.7L12 9.9L9.8 7.7Z" fill="#F0B90B"/><path d="M7 9.5L9.2 11.7L7 13.9L4.8 11.7Z" fill="#F0B90B"/><path d="M17 9.5L19.2 11.7L17 13.9L14.8 11.7Z" fill="#F0B90B"/><path d="M12 10.5L14.2 12.7L12 14.9L9.8 12.7Z" fill="#F0B90B"/><path d="M12 15.5L14.2 17.7L12 19.9L9.8 17.7Z" fill="#F0B90B"/>', scale:1.55},
-  'bybit': {bg:'#000', svg:'<text x="0" y="22" font-family="Arial,sans-serif" font-weight="800" font-size="22" fill="#fff" letter-spacing="-1">BY</text><rect x="40" y="4" width="4" height="20" fill="#F7A600"/><text x="48" y="22" font-family="Arial,sans-serif" font-weight="800" font-size="22" fill="#fff" letter-spacing="-1">T</text>', viewBox:'0 0 92 30', scale:1.3},
-  'bitget': {bg:'#fff', svg:'<path d="M17 6L9 6L9 11L17 11" stroke="#1DA8B3" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 18L15 18L15 13L7 13" stroke="#1DA8B3" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'},
-  'coinbase': {bg:'#0052FF', svg:'<circle cx="12" cy="12" r="8" fill="#fff"/><rect x="9" y="9" width="6" height="6" rx="1.2" fill="#0052FF"/>'},
-  'coinswitch': {bg:'#fff', svg:'<path d="M12 4 A8 8 0 0 0 12 20 Z" fill="#1B4332"/><path d="M12 4 A8 8 0 0 1 12 20 Z" fill="#2DD4A8"/>'},
-  'delta': {bg:'#0B0B0B', svg:'<path d="M4 8L13 8L7 16L4 16Z" fill="#F47920"/><path d="M9 8L18 8L12 16L9 16Z" fill="#3EA64A"/>'},
-  'kucoin': {bg:'#fff', svg:'<path d="M5 4L5 20M5 12L11 5M5 12L11 19" stroke="#26C0A4" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="12" r="1.7" fill="#26C0A4"/>'},
-  'okx': {bg:'#fff', svg:'<rect x="4" y="4" width="5" height="5" fill="#000"/><rect x="15" y="4" width="5" height="5" fill="#000"/><rect x="9.5" y="9.5" width="5" height="5" fill="#000"/><rect x="4" y="15" width="5" height="5" fill="#000"/><rect x="15" y="15" width="5" height="5" fill="#000"/>'},
-  'exness': {bg:'#0B0B0B', svg:'<ellipse cx="12" cy="12" rx="7" ry="7" fill="none" stroke="#FFC727" stroke-width="2"/><path d="M6.5 17.5L17.5 6.5" stroke="#FFC727" stroke-width="2" stroke-linecap="round"/>'},
-  'hotforex': {bg:'#0B0B0B', svg:'<text x="0" y="22" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#fff">HF</text><text x="36" y="22" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#D62B2B">M</text>', viewBox:'0 0 60 30', scale:1.3},
-  'ic markets': {bg:'#0B0B0B', svg:'<rect x="4" y="14" width="3" height="6" fill="#fff"/><rect x="8.5" y="10" width="3" height="10" fill="#fff"/><rect x="13" y="6" width="3" height="14" fill="#fff"/><text x="18" y="18" font-family="Arial,sans-serif" font-weight="900" font-size="13" fill="#3CB54A">IC</text>'},
-  'pepperstone': {bg:'#fff', svg:'<path d="M12 3 L19 6 V11 C19 16 16 19.5 12 21 C8 19.5 5 16 5 11 V6 Z" fill="#1A73E8"/><text x="7.7" y="14.5" font-family="Arial,sans-serif" font-weight="900" font-size="11" fill="#fff">P</text>'},
-  'xm': {bg:'#0B0B0B', svg:'<path d="M2 4 L10 18 L2 32" fill="#D9242A"/><text x="14" y="26" font-family="Arial,sans-serif" font-weight="900" font-size="24" fill="#fff">XM</text>', viewBox:'0 0 60 36', scale:1.35},
-  'metatrader 4': {bg:'linear-gradient(160deg,#4A9FE8,#2E7BC4)', svg:'<circle cx="12" cy="9" r="3.4" fill="#3CB54A"/><circle cx="8" cy="14" r="3" fill="#F2B632"/><circle cx="16" cy="14" r="3" fill="#3D8FD6"/><circle cx="12" cy="13.5" r="3.4" fill="#fff"/><text x="9.7" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="7" fill="#E8821E">4</text>'},
-  'metatrader 5': {bg:'linear-gradient(160deg,#4A9FE8,#2E7BC4)', svg:'<circle cx="12" cy="9" r="3.4" fill="#3CB54A"/><circle cx="8" cy="14" r="3" fill="#F2B632"/><circle cx="16" cy="14" r="3" fill="#3D8FD6"/><circle cx="12" cy="13.5" r="3.4" fill="#fff"/><text x="9.7" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="7" fill="#E8821E">5</text>'},
-  'zerodha': {bg:'#fff', svg:'<path d="M20 5L11 12L20 19L15 19L6 12L15 5Z" fill="#E2492B"/>'},
-  'upstox': {bg:'#5A1F6B', svg:'<path d="M5 13c2 0 3-2 3-5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/><rect x="11.5" y="6" width="2.4" height="12" fill="#fff"/><path d="M14.5 12a3.5 3.5 0 1 0 0 0.01" stroke="#fff" stroke-width="2.2" fill="none"/>'},
-  'angel one': {bg:'#fff', svg:'<rect x="4" y="14" width="2.6" height="2.6" fill="#F47920"/><rect x="7.2" y="14" width="2.6" height="2.6" fill="#F47920"/><rect x="10.4" y="14" width="2.6" height="2.6" fill="#F47920"/><rect x="5.6" y="11" width="2.6" height="2.6" fill="#F47920"/><rect x="8.8" y="11" width="2.6" height="2.6" fill="#F47920"/><rect x="7.2" y="8" width="2.6" height="2.6" fill="#F47920"/><path d="M11 17L16 6L21 17Z" fill="#1A56DB"/>'},
-  'fyers': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="12" fill="#F6C040" text-anchor="middle">FY</text>'},
-  'dhan': {bg:'#0F2557', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="12" fill="#fff" text-anchor="middle">DH</text>'},
-  'finvasia (shoonya)': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">FV</text>'},
-  'alice blue': {bg:'#0E3CCB', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">AB</text>'},
-  'pocketful': {bg:'#1A1A1A', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">PF</text>'},
-  'samco': {bg:'#1A1F71', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">SM</text>'},
-  'kotak neo': {bg:'#C22E1A', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">KN</text>'},
-  'gate.io': {bg:'#000', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">GT</text>'},
-  'kraken': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">KR</text>'},
-  'mexc': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">MX</text>'},
-  'bingx': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">BX</text>'},
-  'bitfinex': {bg:'#062C41', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">BF</text>'},
-  'htx (huobi)': {bg:'#141414', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">HT</text>'},
-  'crypto.com': {bg:'#1B1B1B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">C</text>'},
-  'deriv': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">DV</text>'},
-  'coindcx': {bg:'#0B0B0B', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">DC</text>'},
-  'wazirx': {bg:'#EB7A00', svg:'<text x="12" y="16" font-family="Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle">WX</text>'},
-  'groww': {bg:'linear-gradient(160deg,#5B8DEF,#34D399)', svg:'<path d="M5 16l4-5 3 3 6-9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>', round:true}
+// Official broker logos — pulled live from each broker's own website favicon (their own brand asset, used purely for account identification).
+const BROKER_DOMAINS = {
+  'binance': 'binance.com',
+  'bybit': 'bybit.com',
+  'bitget': 'bitget.com',
+  'coinbase': 'coinbase.com',
+  'coinswitch': 'coinswitch.co',
+  'delta': 'delta.exchange',
+  'kucoin': 'kucoin.com',
+  'okx': 'okx.com',
+  'exness': 'exness.com',
+  'hotforex': 'hfm.com',
+  'ic markets': 'icmarkets.com',
+  'pepperstone': 'pepperstone.com',
+  'xm': 'xm.com',
+  'metatrader 4': 'metatrader4.com',
+  'metatrader 5': 'metatrader5.com',
+  'zerodha': 'zerodha.com',
+  'upstox': 'upstox.com',
+  'angel one': 'angelone.in',
+  'fyers': 'fyers.in',
+  'dhan': 'dhan.co',
+  'finvasia (shoonya)': 'shoonya.com',
+  'alice blue': 'aliceblueonline.com',
+  'pocketful': 'pocketful.in',
+  'samco': 'samco.in',
+  'kotak neo': 'kotaksecurities.com',
+  'gate.io': 'gate.io',
+  'kraken': 'kraken.com',
+  'mexc': 'mexc.com',
+  'bingx': 'bingx.com',
+  'bitfinex': 'bitfinex.com',
+  'htx (huobi)': 'htx.com',
+  'crypto.com': 'crypto.com',
+  'deriv': 'deriv.com',
+  'coindcx': 'coindcx.com',
+  'wazirx': 'wazirx.com',
+  'groww': 'groww.in'
 };
 
 function getBrokerLogoHTML(name, size){
@@ -2506,22 +2506,15 @@ function getBrokerLogoHTML(name, size){
   if(!name) return null;
   const key = name.toLowerCase().replace(/\s*\(mt[45]\)\s*/g,'').trim();
   const fullKey = name.toLowerCase().trim();
-  let entry = BROKER_LOGOS[fullKey] || BROKER_LOGOS[key];
-  if(!entry){
-    // Try matching by checking if any logo key is a prefix word of the broker name
-    const foundKey = Object.keys(BROKER_LOGOS).find(k => key.startsWith(k) || k.startsWith(key));
-    if(foundKey) entry = BROKER_LOGOS[foundKey];
+  let domain = BROKER_DOMAINS[fullKey] || BROKER_DOMAINS[key];
+  if(!domain){
+    const foundKey = Object.keys(BROKER_DOMAINS).find(k => key.startsWith(k) || k.startsWith(key));
+    if(foundKey) domain = BROKER_DOMAINS[foundKey];
   }
-  if(!entry) return null;
-  const radius = entry.round ? '50%' : Math.round(size*0.28)+'px';
-  const vb = entry.viewBox || '0 0 24 24';
-  const vbParts = vb.split(' ').map(Number);
-  const vbW = vbParts[2] || 24;
-  const vbH = vbParts[3] || 24;
-  const scale = entry.scale || 1;
-  const svgW = Math.round(size*0.72*scale);
-  const svgH = Math.round(svgW * (vbH/vbW));
-  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:${entry.bg};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);flex-shrink:0;overflow:hidden;"><svg width="${svgW}" height="${svgH}" viewBox="${vb}">${entry.svg}</svg></div>`;
+  if(!domain) return null;
+  const radius = Math.round(size*0.28)+'px';
+  const imgSize = Math.round(size*0.62);
+  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);flex-shrink:0;overflow:hidden;"><img src="https://www.google.com/s2/favicons?sz=128&domain=${domain}" width="${imgSize}" height="${imgSize}" style="object-fit:contain;" onerror="this.parentElement.innerHTML='🏦';this.parentElement.style.fontSize='${Math.round(size*0.5)}px';"></div>`;
 }
 
 async function openBrokerPopup(){
