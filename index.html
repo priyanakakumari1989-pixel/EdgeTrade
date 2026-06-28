@@ -2553,10 +2553,10 @@ function filterConnected(type){
   renderConnected();
 }
 
-// Official broker logos — pulled live from each broker's own website favicon (their own brand asset, used purely for account identification).
+// Official broker logos — pulled live from each broker's own website favicon (their own brand asset, used purely for account identification). Bybit uses its verified official logo directly since its website favicon isn't representative.
 const BROKER_DOMAINS = {
   'binance': 'binance.com',
-  'bybit': {domain:'bybit.com', scale:1.3},
+  'bybit': {url:'https://commons.wikimedia.org/wiki/Special:FilePath/Bybit_Logo.svg'},
   'bitget': 'bitget.com',
   'coinbase': 'coinbase.com',
   'coinswitch': 'coinswitch.co',
@@ -2579,7 +2579,7 @@ const BROKER_DOMAINS = {
   'alice blue': 'aliceblueonline.com',
   'pocketful': 'pocketful.in',
   'samco': 'samco.in',
-  'kotak neo': 'neo.kotaksecurities.com',
+  'kotak neo': 'kotakneo.com',
   'gate.io': 'gate.io',
   'kraken': 'kraken.com',
   'mexc': 'mexc.com',
@@ -2588,7 +2588,7 @@ const BROKER_DOMAINS = {
   'htx (huobi)': 'htx.com',
   'crypto.com': 'crypto.com',
   'deriv': 'deriv.com',
-  'coindcx': {domain:'coindcx.com', scale:1.6},
+  'coindcx': 'coindcx.com',
   'wazirx': 'wazirx.com',
   'groww': 'groww.in'
 };
@@ -2604,11 +2604,10 @@ function getBrokerLogoHTML(name, size){
     if(foundKey) raw = BROKER_DOMAINS[foundKey];
   }
   if(!raw) return null;
-  const domain = typeof raw === 'string' ? raw : raw.domain;
-  const scale = typeof raw === 'string' ? 1 : (raw.scale || 1);
+  const imgUrl = (typeof raw === 'object' && raw.url) ? raw.url : `https://www.google.com/s2/favicons?sz=128&domain=${typeof raw === 'string' ? raw : raw.domain}`;
   const radius = Math.round(size*0.28)+'px';
-  const imgSize = Math.round(size*0.62*scale);
-  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);flex-shrink:0;overflow:hidden;"><img src="https://www.google.com/s2/favicons?sz=192&domain=${domain}" width="${imgSize}" height="${imgSize}" style="object-fit:contain;" onerror="this.parentElement.innerHTML='🏦';this.parentElement.style.fontSize='${Math.round(size*0.5)}px';"></div>`;
+  const imgSize = Math.round(size*0.62);
+  return `<div style="width:${size}px;height:${size}px;border-radius:${radius};background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);flex-shrink:0;overflow:hidden;"><img src="${imgUrl}" width="${imgSize}" height="${imgSize}" style="object-fit:contain;" onerror="this.parentElement.innerHTML='🏦';this.parentElement.style.fontSize='${Math.round(size*0.5)}px';"></div>`;
 }
 
 async function openBrokerPopup(){
