@@ -36,10 +36,10 @@ export async function getConnection(supabase: SupabaseClient, connectionId: stri
     .single();
   if (error || !data) throw new Error("Connection not found: " + (error?.message || "no data"));
   const secret = Deno.env.get("ENCRYPTION_SECRET") ?? "edgetrade-default-secret-key-2024";
-  if (data.api_key_encrypted) data.api_key_encrypted = await decryptData(data.api_key_encrypted, secret);
-  if (data.api_secret_encrypted) data.api_secret_encrypted = await decryptData(data.api_secret_encrypted, secret);
-  if (data.api_passphrase_encrypted) data.api_passphrase_encrypted = await decryptData(data.api_passphrase_encrypted, secret);
-  if (data.mt_investor_password_encrypted) data.mt_investor_password_encrypted = await decryptData(data.mt_investor_password_encrypted, secret);
+  try { if (data.api_key_encrypted) data.api_key_encrypted = await decryptData(data.api_key_encrypted, secret); } catch { }
+  try { if (data.api_secret_encrypted) data.api_secret_encrypted = await decryptData(data.api_secret_encrypted, secret); } catch { }
+  try { if (data.api_passphrase_encrypted) data.api_passphrase_encrypted = await decryptData(data.api_passphrase_encrypted, secret); } catch { }
+  try { if (data.mt_investor_password_encrypted) data.mt_investor_password_encrypted = await decryptData(data.mt_investor_password_encrypted, secret); } catch { }
   return data;
 }
 
