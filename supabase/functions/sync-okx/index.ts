@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { handleSyncRequest } from "../_shared/edge-handler.ts";
-import { saveSyncedTrades, pnlToConclusion, isoToDate, NormalizedTrade } from "../_shared/utils.ts";
-import { hmacSha256Base64 } from "../_shared/crypto.ts";
+import { handleSyncRequest } from "../_utils/edge-handler.ts";
+import { saveSyncedTrades, pnlToConclusion, isoToDate, NormalizedTrade } from "../_utils/utils.ts";
+import { hmacSha256Base64 } from "../_utils/crypto.ts";
 
 async function okxFetch(base: string, path: string, apiKey: string, apiSecret: string, passphrase: string, params: Record<string, string> = {}) {
   const ts = new Date().toISOString();

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { handleSyncRequest } from "../_shared/edge-handler.ts";
-import { saveSyncedTrades, pnlToConclusion, NormalizedTrade } from "../_shared/utils.ts";
+import { handleSyncRequest } from "../_utils/edge-handler.ts";
+import { saveSyncedTrades, pnlToConclusion, NormalizedTrade } from "../_utils/utils.ts";
 
 // Upstox API v2
 // api_key_encrypted = access_token (OAuth token from Upstox login, refreshes daily)
