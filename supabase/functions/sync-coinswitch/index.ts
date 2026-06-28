@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { handleSyncRequest } from "../_shared/edge-handler.ts";
-import { saveSyncedTrades, msToDate, msToTime, NormalizedTrade } from "../_shared/utils.ts";
+import { handleSyncRequest } from "../_utils/edge-handler.ts";
+import { saveSyncedTrades, msToDate, msToTime, NormalizedTrade } from "../_utils/utils.ts";
 
 serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiKey = conn.api_key_encrypted as string;
