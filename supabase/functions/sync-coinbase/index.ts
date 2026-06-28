@@ -24,7 +24,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const trades: NormalizedTrade[] = [];
 
   // Advanced Trade orders
-  const start = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  const start = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
   const orders = await coinbaseFetch(`/api/v3/brokerage/orders/historical/batch?order_status=FILLED&start_date=${encodeURIComponent(start)}&limit=250`, apiKey, apiSecret);
 
   if (Array.isArray(orders)) {

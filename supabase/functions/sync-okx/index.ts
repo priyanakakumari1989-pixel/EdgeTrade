@@ -28,7 +28,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const base = isDemo ? "https://www.okx.com" : "https://www.okx.com"; // OKX uses x-simulated-trading header for demo
 
   const trades: NormalizedTrade[] = [];
-  const after = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  const after = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
 
   // Closed orders
   const orders = await okxFetch(base, "/api/v5/trade/orders-history", apiKey, apiSecret, passphrase, {

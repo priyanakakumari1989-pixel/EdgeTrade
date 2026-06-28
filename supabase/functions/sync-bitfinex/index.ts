@@ -21,7 +21,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiKey = conn.api_key_encrypted as string;
   const apiSecret = conn.api_secret_encrypted as string;
   const trades: NormalizedTrade[] = [];
-  const start = Date.now() - 30 * 24 * 3600 * 1000;
+  const start = Date.now() - 90 * 24 * 3600 * 1000;
 
   const tradeData = await bitfinexFetch("/v2/auth/r/trades/hist", { start, end: Date.now(), limit: 2500, sort: -1 }, apiKey, apiSecret);
   if (Array.isArray(tradeData)) {

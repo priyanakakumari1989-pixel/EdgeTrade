@@ -19,7 +19,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiKey = conn.api_key_encrypted as string;
   const apiSecret = conn.api_secret_encrypted as string;
   const trades: NormalizedTrade[] = [];
-  const startTs = Date.now() - 30 * 24 * 3600 * 1000;
+  const startTs = Date.now() - 90 * 24 * 3600 * 1000;
   const ts = Date.now();
 
   // Perpetual futures history

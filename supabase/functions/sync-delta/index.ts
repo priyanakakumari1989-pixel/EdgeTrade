@@ -24,7 +24,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const isDemo = conn.account_type === "demo";
   const base = isDemo ? "https://testnet-api.delta.exchange" : "https://api.delta.exchange";
   const trades: NormalizedTrade[] = [];
-  const startTime = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split(".")[0] + "Z";
+  const startTime = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split(".")[0] + "Z";
 
   const orders = await deltaFetch(base, "/v2/orders/history", { page_size: "200", state: "closed", after: startTime }, apiKey, apiSecret);
   if (Array.isArray(orders)) {
