@@ -24,7 +24,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiSecret = conn.api_secret_encrypted as string;
   const passphrase = conn.api_passphrase_encrypted as string;
   const isDemo = conn.account_type === "demo";
-  const startTime = (Date.now() - 30 * 24 * 3600 * 1000).toString();
+  const startTime = (Date.now() - 90 * 24 * 3600 * 1000).toString();
   const endTime = Date.now().toString();
 
   const trades: NormalizedTrade[] = [];

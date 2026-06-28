@@ -23,7 +23,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
     return j?.result?.order_list || j?.result?.trade_list || null;
   }
 
-  const start_ts = Date.now() - 30 * 24 * 3600 * 1000;
+  const start_ts = Date.now() - 90 * 24 * 3600 * 1000;
   const orders = await cryptoComFetch("private/get-order-history", {
     start_ts, count: 200
   });

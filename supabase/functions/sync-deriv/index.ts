@@ -15,7 +15,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   if (res.ok) {
     const json = await res.json();
     const contracts = json?.profit_table?.transactions || [];
-    const cutoff = Date.now() - 30 * 24 * 3600 * 1000;
+    const cutoff = Date.now() - 90 * 24 * 3600 * 1000;
     for (const c of contracts) {
       const ts = new Date((c.sell_time || c.purchase_time) * 1000);
       if (ts.getTime() < cutoff) continue;

@@ -28,7 +28,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
 
   const trades: NormalizedTrade[] = [];
   const end = Date.now();
-  const start = end - 30 * 24 * 3600 * 1000;
+  const start = end - 90 * 24 * 3600 * 1000;
 
   // Closed PnL (linear/inverse futures)
   const closedPnl = await bybitFetch(base, "/v5/position/closed-pnl", {

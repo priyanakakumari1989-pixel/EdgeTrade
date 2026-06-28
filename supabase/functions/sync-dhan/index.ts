@@ -42,7 +42,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
 
   // Historical trades via ledger
   const today = new Date().toISOString().split("T")[0];
-  const fromDate = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split("T")[0];
+  const fromDate = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split("T")[0];
   const ledger = await dhanFetch(`/ledger?from=${fromDate}&to=${today}`);
   if (Array.isArray(ledger)) {
     for (const l of ledger) {

@@ -16,7 +16,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   if (res.ok) {
     const data = await res.json();
     if (Array.isArray(data)) {
-      const cutoff = Date.now() - 30 * 24 * 3600 * 1000;
+      const cutoff = Date.now() - 90 * 24 * 3600 * 1000;
       for (const t of data) {
         const tradeTs = parseInt(t.time);
         if (tradeTs < cutoff) continue;

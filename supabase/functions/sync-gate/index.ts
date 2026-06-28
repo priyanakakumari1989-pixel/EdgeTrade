@@ -27,7 +27,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiSecret = conn.api_secret_encrypted as string;
   const isDemo = conn.account_type === "demo"; // Gate uses live API for both, demo is simulated
   const trades: NormalizedTrade[] = [];
-  const from = Math.floor((Date.now() - 30 * 24 * 3600 * 1000) / 1000).toString();
+  const from = Math.floor((Date.now() - 90 * 24 * 3600 * 1000) / 1000).toString();
 
   // Spot orders
   const spotOrders = await gateFetch("/api/v4/spot/orders", { status: "finished", from, limit: "500" }, apiKey, apiSecret);
