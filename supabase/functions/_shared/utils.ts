@@ -151,6 +151,7 @@ export async function updateSyncStatus(
     .eq("id", connectionId);
 }
 
+// decryption enabled v2
 export function pnlToConclusion(pnl: number | null): "target" | "loss" | "breakeven" {
   if (pnl === null || pnl === undefined) return "breakeven";
   if (pnl > 0) return "target";
