@@ -123,6 +123,47 @@ serve(async (req) => {
 
     console.log("TOTAL TRADES FOUND:", allTrades.length);
 
+    // Cache of date -> trading_days.id to avoid duplicate lookups/inserts
+    const dayIdCache: Record<string, string> = {};
+
+    async function getOrCreateDayId(dateStr: string): Promise<string | null> {
+      if (dayIdCache[dateStr]) return dayIdCache[dateStr];
+
+      const { data: existingDay, error: findErr } = await supabase
+        .from("trading_days")
+        .select("id")
+        .eq("user_id", conn.user_id)
+        .eq("date", dateStr)
+        .maybeSingle();
+
+      if (findErr) {
+        console.log("DAY LOOKUP ERROR:", JSON.stringify(findErr));
+      }
+
+      if (existingDay) {
+        dayIdCache[dateStr] = existingDay.id;
+        return existingDay.id;
+      }
+
+      const { data: newDay, error: createErr } = await supabase
+        .from("trading_days")
+        .insert([{
+          user_id: conn.user_id,
+          broker_id: conn.broker_id || null,
+          date: dateStr,
+        }])
+        .select()
+        .single();
+
+      if (createErr || !newDay) {
+        console.log("DAY CREATE ERROR:", JSON.stringify(createErr));
+        return null;
+      }
+
+      dayIdCache[dateStr] = newDay.id;
+      return newDay.id;
+    }
+
     let inserted = 0;
     for (const t of allTrades) {
       const externalId = `binance-futures-${t.symbol}-${t.id}`;
@@ -134,9 +175,17 @@ serve(async (req) => {
         .maybeSingle();
       if (existing) continue;
 
+      const tradeDate = new Date(t.time).toISOString().split("T")[0];
+      const dayId = await getOrCreateDayId(tradeDate);
+      if (!dayId) {
+        console.log("SKIPPING TRADE - no day_id:", externalId);
+        continue;
+      }
+
       const { error: insertErr } = await supabase.from("trades").insert([{
         user_id: conn.user_id,
         connection_id: connection_id,
+        day_id: dayId,
         external_trade_id: externalId,
         chart_name: t.symbol,
         direction: t.side === "BUY" ? "LONG" : "SHORT",
