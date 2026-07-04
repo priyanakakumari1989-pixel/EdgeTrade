@@ -24,6 +24,12 @@ async function deltaFetch(base: string, path: string, params: Record<string, str
 serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiKey = conn.api_key_encrypted as string;
   const apiSecret = conn.api_secret_encrypted as string;
+  console.log("DELTA DEBUG:", {
+    apiKeyLength: apiKey?.length,
+    apiKeyPreview: apiKey?.slice(0, 4) + "...",
+    apiSecretLength: apiSecret?.length,
+    accountType: conn.account_type,
+  });
   const isDemo = conn.account_type === "demo";
   const base = isDemo ? "https://testnet-api.delta.exchange" : "https://api.delta.exchange";
   const trades: NormalizedTrade[] = [];
