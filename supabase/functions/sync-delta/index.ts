@@ -30,22 +30,23 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const cutoffMs = Date.now() - 90 * 24 * 3600 * 1000;
 
   const orders = await deltaFetch(base, "/v2/orders/history", { page_size: "50" }, apiKey, apiSecret);
-  console.log("DELTA RAW COUNT:", Array.isArray(orders) ? orders.length : typeof orders);
-  console.log("DELTA RAW SAMPLE:", JSON.stringify(orders?.slice ? orders.slice(0, 3) : orders));
   if (Array.isArray(orders)) {
     for (const o of orders) {
-      if (o.state !== "closed" || !o.avg_fill_price) continue;
+      if (o.state !== "closed" || !o.average_fill_price) continue;
       const ts = new Date(o.updated_at || o.created_at);
       if (ts.getTime() < cutoffMs) continue;
-      const pnl = parseFloat(o.pnl || "0");
+      const meta = o.meta_data || {};
+      const pnl = parseFloat(meta.pnl || "0");
+      const entryPrice = parseFloat(meta.entry_price || o.average_fill_price);
+      const exitPrice = meta.avg_exit_price ? parseFloat(meta.avg_exit_price) : null;
       trades.push({
         external_trade_id: `delta-${o.id}`,
-        symbol: (o.product?.symbol || o.product_symbol || "UNKNOWN").replace("USDT", "/USDT").replace("INR", "/INR"),
+        symbol: (o.product?.symbol || o.product_symbol || "UNKNOWN").replace("USDT", "/USDT").replace("USD", "/USD").replace("INR", "/INR"),
         direction: o.side === "buy" ? "long" : "short",
         lot_size: parseFloat(o.size),
         lot_unit: "qty",
-        entry_price: parseFloat(o.avg_fill_price),
-        exit_price: null,
+        entry_price: entryPrice,
+        exit_price: exitPrice,
         entry_time: ts.toTimeString().slice(0, 5),
         fees: parseFloat(o.paid_commission || "0"),
         stop_loss: null,
