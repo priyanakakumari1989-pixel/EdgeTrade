@@ -13,7 +13,10 @@ async function deltaFetch(base: string, path: string, params: Record<string, str
   const res = await fetch(`${base}${path}${qstr ? "?" + qstr : ""}`, {
     headers: { "api-key": apiKey, "signature": sig, "timestamp": ts }
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error("Delta API error:", res.status, await res.text());
+    return null;
+  }
   const j = await res.json();
   return j?.result || null;
 }

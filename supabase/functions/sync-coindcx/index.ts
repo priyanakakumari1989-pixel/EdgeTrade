@@ -35,7 +35,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
           fees: parseFloat(t.fee_amount || "0"),
           stop_loss: null,
           take_profit: null,
-          conclusion: "target",
+          conclusion: "breakeven", // TODO: no real PnL data available from this API endpoint yet
           date: msToDate(tradeTs),
         });
       }

@@ -34,7 +34,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         fees: 0,
         stop_loss: null,
         take_profit: null,
-        conclusion: "target",
+        conclusion: "breakeven", // TODO: no real PnL data available from this API endpoint yet
         date: ts.toISOString().split("T")[0],
       });
     }
