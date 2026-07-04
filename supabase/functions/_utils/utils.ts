@@ -54,7 +54,7 @@ export async function getOrCreateTradingDay(
     .from("trading_days")
     .select("id")
     .eq("user_id", userId)
-    .eq("broker_id", connectionId)
+    .eq("connection_id", connectionId)
     .eq("date", date)
     .maybeSingle();
 
@@ -62,7 +62,7 @@ export async function getOrCreateTradingDay(
 
   const { data: created, error } = await supabase
     .from("trading_days")
-    .insert([{ user_id: userId, broker_id: connectionId, date }])
+    .insert([{ user_id: userId, connection_id: connectionId, date }])
     .select("id")
     .single();
 
@@ -72,7 +72,7 @@ export async function getOrCreateTradingDay(
       .from("trading_days")
       .select("id")
       .eq("user_id", userId)
-      .eq("broker_id", connectionId)
+      .eq("connection_id", connectionId)
       .eq("date", date)
       .single();
     if (retry?.id) return retry.id;
