@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleSyncRequest } from "../_utils/edge-handler.ts";
-import { saveSyncedTrades, pnlToConclusion, isoToDate, NormalizedTrade } from "../_utils/utils.ts";
+import { saveSyncedTrades, pnlToConclusion, NormalizedTrade } from "../_utils/utils.ts";
 import { hmacSha256Base64 } from "../_utils/crypto.ts";
 
-async function okxFetch(base: string, path: string, apiKey: string, apiSecret: string, passphrase: string, params: Record<string, string> = {}) {
+async function okxFetch(base: string, path: string, apiKey: string, apiSecret: string, passphrase: string, isDemo: boolean, params: Record<string, string> = {}) {
   const ts = new Date().toISOString();
   const qstr = Object.keys(params).length ? "?" + new URLSearchParams(params).toString() : "";
   const preSign = ts + "GET" + path + qstr;
@@ -12,10 +12,13 @@ async function okxFetch(base: string, path: string, apiKey: string, apiSecret: s
     headers: {
       "OK-ACCESS-KEY": apiKey, "OK-ACCESS-SIGN": sig,
       "OK-ACCESS-TIMESTAMP": ts, "OK-ACCESS-PASSPHRASE": passphrase,
-      "x-simulated-trading": base.includes("testnet") ? "1" : "0",
+      "x-simulated-trading": isDemo ? "1" : "0",
     }
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error(`OKX API error [${path}]: ${res.status} ${await res.text()}`);
+    return null;
+  }
   const j = await res.json();
   return j?.data || null;
 }
@@ -25,14 +28,16 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiSecret = conn.api_secret_encrypted as string;
   const passphrase = conn.api_passphrase_encrypted as string;
   const isDemo = conn.account_type === "demo";
-  const base = isDemo ? "https://www.okx.com" : "https://www.okx.com"; // OKX uses x-simulated-trading header for demo
+  const base = "https://www.okx.com";
 
   const trades: NormalizedTrade[] = [];
-  const after = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+  const begin = (Date.now() - 90 * 24 * 3600 * 1000).toString();
+  const end = Date.now().toString();
 
-  // Closed orders
-  const orders = await okxFetch(base, "/api/v5/trade/orders-history", apiKey, apiSecret, passphrase, {
-    instType: "SWAP", after, limit: "100"
+  // Use orders-history-archive: covers last 3 months (orders-history only covers last 7 days)
+  // Use begin/end (epoch ms) for time range, NOT `after` (that's an ordId pagination cursor, not a timestamp)
+  const orders = await okxFetch(base, "/api/v5/trade/orders-history-archive", apiKey, apiSecret, passphrase, isDemo, {
+    instType: "SWAP", begin, end, limit: "100"
   });
   if (orders) {
     for (const o of orders) {
@@ -57,9 +62,9 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
     }
   }
 
-  // Spot orders
-  const spotOrders = await okxFetch(base, "/api/v5/trade/orders-history", apiKey, apiSecret, passphrase, {
-    instType: "SPOT", after, limit: "100"
+  // Spot orders - same archive endpoint + begin/end fix
+  const spotOrders = await okxFetch(base, "/api/v5/trade/orders-history-archive", apiKey, apiSecret, passphrase, isDemo, {
+    instType: "SPOT", begin, end, limit: "100"
   });
   if (spotOrders) {
     for (const o of spotOrders) {
@@ -77,7 +82,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         fees: parseFloat(o.fee || "0") * -1,
         stop_loss: null,
         take_profit: null,
-        conclusion: "target",
+        conclusion: "breakeven",
         date: ts.toISOString().split("T")[0],
       });
     }

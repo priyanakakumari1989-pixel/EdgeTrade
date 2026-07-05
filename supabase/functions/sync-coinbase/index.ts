@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleSyncRequest } from "../_utils/edge-handler.ts";
-import { saveSyncedTrades, isoToDate, NormalizedTrade } from "../_utils/utils.ts";
+import { saveSyncedTrades, pnlToConclusion, NormalizedTrade } from "../_utils/utils.ts";
 import { hmacSha256Hex } from "../_utils/crypto.ts";
 
 async function coinbaseFetch(path: string, apiKey: string, apiSecret: string) {
@@ -13,21 +13,27 @@ async function coinbaseFetch(path: string, apiKey: string, apiSecret: string) {
       "CB-ACCESS-TIMESTAMP": ts, "CB-VERSION": "2016-02-18",
     }
   });
-  if (!res.ok) return null;
-  const j = await res.json();
-  return j?.orders || j?.data || null;
+  if (!res.ok) {
+    console.error(`Coinbase API error [${path}]: ${res.status} ${await res.text()}`);
+    return null;
+  }
+  return await res.json();
 }
 
 serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const apiKey = conn.api_key_encrypted as string;
   const apiSecret = conn.api_secret_encrypted as string;
   const trades: NormalizedTrade[] = [];
-
-  // Advanced Trade orders
   const start = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
-  const orders = await coinbaseFetch(`/api/v3/brokerage/orders/historical/batch?order_status=FILLED&start_date=${encodeURIComponent(start)}&limit=250`, apiKey, apiSecret);
 
-  if (Array.isArray(orders)) {
+  let cursor = "";
+  let pages = 0;
+  while (pages < 5) {
+    const qs = `order_status=FILLED&start_date=${encodeURIComponent(start)}&limit=250${cursor ? `&cursor=${cursor}` : ""}`;
+    const res = await coinbaseFetch(`/api/v3/brokerage/orders/historical/batch?${qs}`, apiKey, apiSecret);
+    const orders = res?.orders;
+    if (!Array.isArray(orders) || orders.length === 0) break;
+
     for (const o of orders) {
       const ts = new Date(o.last_fill_time || o.created_time);
       const pnl = parseFloat(o.total_value_after_fees || "0") - parseFloat(o.total_fees || "0");
@@ -43,10 +49,14 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         fees: parseFloat(o.total_fees || "0"),
         stop_loss: null,
         take_profit: null,
-        conclusion: "target",
+        conclusion: pnlToConclusion(pnl !== 0 ? pnl : null),
         date: ts.toISOString().split("T")[0],
       });
     }
+
+    if (!res?.has_next || !res?.cursor) break;
+    cursor = res.cursor;
+    pages++;
   }
 
   return await saveSyncedTrades(supabase as never, conn.user_id as string, conn.id as string, trades);

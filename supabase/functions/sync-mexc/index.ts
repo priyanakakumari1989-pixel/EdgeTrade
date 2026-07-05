@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleSyncRequest } from "../_utils/edge-handler.ts";
-import { saveSyncedTrades, pnlToConclusion, msToDate, msToTime, NormalizedTrade } from "../_utils/utils.ts";
+import { saveSyncedTrades, msToDate, msToTime, NormalizedTrade } from "../_utils/utils.ts";
 import { hmacSha256Hex } from "../_utils/crypto.ts";
 
 async function mexcFetch(path: string, params: Record<string, string | number>, apiKey: string, apiSecret: string) {
@@ -11,7 +11,10 @@ async function mexcFetch(path: string, params: Record<string, string | number>, 
   const res = await fetch(`https://api.mexc.com${path}?${qstr}&signature=${sig}`, {
     headers: { "X-MEXC-APIKEY": apiKey }
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error(`MEXC API error [${path}] symbol=${params.symbol}: ${res.status} ${await res.text()}`);
+    return null;
+  }
   const j = await res.json();
   return Array.isArray(j) ? j : (j?.data || null);
 }
@@ -22,9 +25,12 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const trades: NormalizedTrade[] = [];
   const startTime = Date.now() - 90 * 24 * 3600 * 1000;
 
-  const symbols = ["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","BNBUSDT","DOGEUSDT","ADAUSDT"];
+  // NOTE: MEXC myTrades requires a symbol param - there is no "all symbols" endpoint,
+  // so we're limited to this list. Flagged as a coverage gap - trades on symbols not
+  // listed here will not sync. Expand this list as needed.
+  const symbols = ["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT","BNBUSDT","DOGEUSDT","ADAUSDT","AVAXUSDT","LINKUSDT","LTCUSDT"];
   for (const symbol of symbols) {
-    const orders = await mexcFetch("/api/v3/myTrades", { symbol, startTime, limit: 500 }, apiKey, apiSecret);
+    const orders = await mexcFetch("/api/v3/myTrades", { symbol, startTime, limit: 1000 }, apiKey, apiSecret);
     if (!Array.isArray(orders)) continue;
     for (const o of orders) {
       const ts = parseInt(o.time);
@@ -40,7 +46,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         fees: parseFloat(o.commission),
         stop_loss: null,
         take_profit: null,
-        conclusion: "target",
+        conclusion: "breakeven",
         date: msToDate(ts),
       });
     }

@@ -5,7 +5,7 @@ import { hmacSha256Base64 } from "../_utils/crypto.ts";
 
 async function htxFetch(path: string, params: Record<string, string>, apiKey: string, apiSecret: string) {
   const ts = new Date().toISOString().replace(/\..+/, "");
-  const host = "api.huobi.pro";
+  const host = "api.huobi.pro"; // NOTE: verify when live - HTX rebrand may have shifted this domain
   const sorted = Object.entries({ ...params, AccessKeyId: apiKey, SignatureMethod: "HmacSHA256", SignatureVersion: "2", Timestamp: ts })
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
@@ -16,7 +16,10 @@ ${path}
 ${sorted}`;
   const sig = await hmacSha256Base64(apiSecret, preSign);
   const res = await fetch(`https://${host}${path}?${sorted}&Signature=${encodeURIComponent(sig)}`);
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error(`HTX API error [${path}] symbol=${params.symbol}: ${res.status} ${await res.text()}`);
+    return null;
+  }
   const j = await res.json();
   return j?.data || null;
 }
@@ -27,16 +30,21 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const trades: NormalizedTrade[] = [];
   const startDate = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString().split("T")[0];
 
-  const orders = await htxFetch("/v1/order/orders", {
-    "start-date": startDate, states: "filled", size: "500"
-  }, apiKey, apiSecret);
+  // NOTE: HTX's /v1/order/orders requires a "symbol" param (mandatory per docs) - the old code
+  // never sent it, which likely caused the call to fail silently. Looping over common symbols
+  // as a fix, similar to the MEXC pattern. Coverage gap same as MEXC - expand list as needed.
+  const symbols = ["btcusdt","ethusdt","solusdt","xrpusdt","bnbusdt","dogeusdt","adausdt"];
+  for (const symbol of symbols) {
+    const orders = await htxFetch("/v1/order/orders", {
+      symbol, "start-date": startDate, states: "filled", size: "500"
+    }, apiKey, apiSecret);
+    if (!Array.isArray(orders)) continue;
 
-  if (Array.isArray(orders)) {
     for (const o of orders) {
       const ts = parseInt(o["finished-at"] || o["created-at"]);
       trades.push({
         external_trade_id: `htx-${o.id}`,
-        symbol: (o.symbol || "").replace("usdt", "/USDT").replace("inr", "/INR").toUpperCase(),
+        symbol: symbol.toUpperCase().replace("USDT", "/USDT"),
         direction: o.type?.includes("buy") ? "long" : "short",
         lot_size: parseFloat(o["field-amount"] || o.amount),
         lot_unit: "qty",
@@ -48,7 +56,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         fees: parseFloat(o["field-fees"] || "0"),
         stop_loss: null,
         take_profit: null,
-        conclusion: "target",
+        conclusion: "breakeven",
         date: msToDate(ts),
       });
     }

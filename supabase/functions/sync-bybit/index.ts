@@ -15,9 +15,12 @@ async function bybitFetch(base: string, path: string, params: Record<string, str
       "X-BAPI-TIMESTAMP": ts, "X-BAPI-RECV-WINDOW": recv,
     }
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error(`Bybit API error [${path}]: ${res.status} ${await res.text()}`);
+    return null;
+  }
   const j = await res.json();
-  return j?.result?.list || null;
+  return j?.result || null;
 }
 
 serve((req) => handleSyncRequest(req, async (conn, supabase) => {
@@ -30,13 +33,15 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
   const end = Date.now();
   const start = end - 90 * 24 * 3600 * 1000;
 
-  // Closed PnL (linear/inverse futures)
-  const closedPnl = await bybitFetch(base, "/v5/position/closed-pnl", {
-    category: "linear", startTime: start, endTime: end, limit: 200
-  }, apiKey, apiSecret);
-
-  if (closedPnl) {
-    for (const t of closedPnl) {
+  // Closed PnL (linear futures) - paginated via cursor
+  let cursor = "";
+  let pages = 0;
+  while (pages < 10) {
+    const params: Record<string, string | number> = { category: "linear", startTime: start, endTime: end, limit: 200 };
+    if (cursor) params.cursor = cursor;
+    const result = await bybitFetch(base, "/v5/position/closed-pnl", params, apiKey, apiSecret);
+    if (!result?.list?.length) break;
+    for (const t of result.list) {
       const pnl = parseFloat(t.closedPnl);
       trades.push({
         external_trade_id: `bybit-${t.orderId}`,
@@ -54,14 +59,17 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         date: msToDate(parseInt(t.updatedTime)),
       });
     }
+    cursor = result.nextPageCursor || "";
+    pages++;
+    if (!cursor) break;
   }
 
-  // Spot order history
-  const spotOrders = await bybitFetch(base, "/v5/order/history", {
+  // Spot order history (no realized PnL available from this endpoint)
+  const spotResult = await bybitFetch(base, "/v5/order/history", {
     category: "spot", startTime: start, endTime: end, limit: 200
   }, apiKey, apiSecret);
-  if (spotOrders) {
-    for (const t of spotOrders) {
+  if (spotResult?.list) {
+    for (const t of spotResult.list) {
       if (t.orderStatus !== "Filled") continue;
       const ts = parseInt(t.updatedTime);
       trades.push({
@@ -76,7 +84,7 @@ serve((req) => handleSyncRequest(req, async (conn, supabase) => {
         fees: parseFloat(t.cumExecFee || "0"),
         stop_loss: null,
         take_profit: null,
-        conclusion: "target",
+        conclusion: "breakeven",
         date: msToDate(ts),
       });
     }
